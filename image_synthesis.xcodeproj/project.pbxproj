@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		6FA722931C7C217000BB5CC4 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6FA722921C7C217000BB5CC4 /* main.cpp */; };
+		6F6B35D91C8539F1007F5EEE /* painting_2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6F6B35D81C8539F1007F5EEE /* painting_2.cpp */; };
 		6FB9C17C1C5186DF00893140 /* GLUT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6FB9C17B1C5186DF00893140 /* GLUT.framework */; };
 		6FB9C17E1C5186E500893140 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6FB9C17D1C5186E500893140 /* OpenGL.framework */; };
 		6FD2780B1C52AD9700CEB7E7 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6FD2780A1C52AD9700CEB7E7 /* main.cpp */; };
@@ -37,7 +37,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		6FA722921C7C217000BB5CC4 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		6F6B35D81C8539F1007F5EEE /* painting_2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = painting_2.cpp; sourceTree = "<group>"; };
 		6FB9C1711C5186BC00893140 /* image_synthesis */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = image_synthesis; sourceTree = BUILT_PRODUCTS_DIR; };
 		6FB9C17B1C5186DF00893140 /* GLUT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLUT.framework; path = System/Library/Frameworks/GLUT.framework; sourceTree = SDKROOT; };
 		6FB9C17D1C5186E500893140 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
@@ -90,7 +90,7 @@
 		6FB9C1731C5186BC00893140 /* image_synthesis */ = {
 			isa = PBXGroup;
 			children = (
-				6FA722921C7C217000BB5CC4 /* main.cpp */,
+				6F6B35D81C8539F1007F5EEE /* painting_2.cpp */,
 			);
 			path = image_synthesis;
 			sourceTree = "<group>";
@@ -180,7 +180,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6FA722931C7C217000BB5CC4 /* main.cpp in Sources */,
+				6F6B35D91C8539F1007F5EEE /* painting_2.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

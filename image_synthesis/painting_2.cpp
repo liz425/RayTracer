@@ -14,7 +14,7 @@
 
 //specular type, 0 -> soft, 1 -> sharp, 2 -> other shape
 #define SpecularType 0
-//#define _hard_spot_light_
+#define _hard_spot_light_
 
 
 using namespace std;
@@ -902,68 +902,84 @@ int main(int argc, char *argv[])
 {
   width = 640;
   height = 640;
-  int alias = 0;
+  int alias = 3;
   Scene sce;
 //  sce.p_eye = Point3D(0, -50, 0);
 //  sce.v_view = Vector3D(0, 1, 0);
   sce.p_eye = Point3D(0, -50, 0);
   sce.v_view = Vector3D(0, 1, 0);
   sce.v_up = Vector3D(0, 0, 1);
-  sce.dist = 3;
+  sce.dist = 8;
   sce.SetCamera();
   
   
   pixmap = new unsigned char[width * height * 3];
   vector<AnyObject*> objs;
   
-  AnyObject* plane1 = (AnyObject*)new Plane(Point3D(0, 25, 0), Vector3D(0, -1, 0), Color(214, 147, 44));
+  AnyObject* plane1 = (AnyObject*)new Plane(Point3D(0, 50, 0), Vector3D(0, -1, 0), Color(100, 92, 72));
   objs.push_back(plane1);
   
-  AnyObject* plane2 = (AnyObject*)new Plane(Point3D(0, 0, -20), Vector3D(0, 0, 1), Color(157, 139, 187));
+  AnyObject* plane2 = (AnyObject*)new Plane(Point3D(0, 0, -20), Vector3D(0, 0, 1), Color(68, 57, 43));
   objs.push_back(plane2);
-  AnyObject* plane3 = (AnyObject*)new Plane(Point3D(-500, 0, 0), Vector3D(1, 0, 0), Color(100, 200, 150));
+  
+  AnyObject* plane3 = (AnyObject*)new Plane(Point3D(35, 0, 0), Vector3D(-1, 0, 0), Color(117, 52, 43));
   objs.push_back(plane3);
   
-  AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(0, 0, 0), 12, Color(73, 179, 248));
-  objs.push_back(sphere1);
-  
-  AnyObject* sphere2 = (AnyObject*)new Sphere(Point3D(10, 0, 7), 8, Color(50, 200, 100));
-  objs.push_back(sphere2);
-  
-  AnyObject* sphere3 = (AnyObject*)new Sphere(Point3D(-10, 0, 7), 8, Color(250, 100, 70));
-  objs.push_back(sphere3);
-  
-  AnyObject* sphere4 = (AnyObject*)new Sphere(Point3D(0, 10, -7), 8, Color(100, 100, 250));
-  objs.push_back(sphere4);
-  
-  AnyObject* sphere5 = (AnyObject*)new Sphere(Point3D(0, -10, -7), 8, Color(250, 230, 70));
-  objs.push_back(sphere5);
-  
-  Cone* cone1 = new Cone();
-  cone1->SetN(Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1));
-  cone1->SetS(1, 1, 3);
-  cone1->SetPCenter(Point3D(-30, 10, 0));
-  cone1->SetColor(Color(148, 199, 111));
-  objs.push_back((AnyObject*) cone1);
-
   Ellipsoid* ellipsoid1 = new Ellipsoid();
   ellipsoid1->SetN(Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1));
-  ellipsoid1->SetS(8, 8, 15);
-  ellipsoid1->SetPCenter(Point3D(35, 10, 0));
-  ellipsoid1->SetColor(Color(192, 57, 153));
+  ellipsoid1->SetS(8, 8, 13);
+  ellipsoid1->SetPCenter(Point3D(15, 10, -2));
+  ellipsoid1->SetColor(Color(53, 71, 14));
   objs.push_back((AnyObject*) ellipsoid1);
+  
+  Ellipsoid* ellipsoid5 = new Ellipsoid();
+  ellipsoid5->SetN(Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1));
+  ellipsoid5->SetS(3, 3, 5);
+  ellipsoid5->SetPCenter(Point3D(15, 10, 14));
+  ellipsoid5->SetColor(Color(171, 133, 112));
+  objs.push_back((AnyObject*) ellipsoid5);
+  
+  Ellipsoid* ellipsoid6 = new Ellipsoid();
+  ellipsoid6->SetN(Vector3D(1, -0.5, 0), Vector3D(0.5, 1, 0), Vector3D(0, 0, 1));
+  ellipsoid6->SetS(8, 2, 8);
+  ellipsoid6->SetPCenter(Point3D(17, 9, 14));
+  ellipsoid6->SetColor(Color(180, 180, 160));
+  objs.push_back((AnyObject*) ellipsoid6);
+  
+  
+  Ellipsoid* ellipsoid3 = new Ellipsoid();
+  ellipsoid3->SetN(Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1));
+  ellipsoid3->SetS(3, 3, 5);
+  ellipsoid3->SetPCenter(Point3D(-15, 10, 18));
+  ellipsoid3->SetColor(Color(164, 140, 114));
+  objs.push_back((AnyObject*) ellipsoid3);
+  
+  Ellipsoid* ellipsoid4 = new Ellipsoid();
+  ellipsoid4->SetN(Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1));
+  ellipsoid4->SetS(8, 5, 5);
+  ellipsoid4->SetPCenter(Point3D(-16, 15, 22));
+  ellipsoid4->SetColor(Color(49, 50, 44));
+  objs.push_back((AnyObject*) ellipsoid4);
+  
+  Ellipsoid* ellipsoid2 = new Ellipsoid();
+  ellipsoid2->SetN(Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1));
+  ellipsoid2->SetS(8, 8, 15);
+  ellipsoid2->SetPCenter(Point3D(-15, 10, 0));
+  ellipsoid2->SetColor(Color(43, 33, 25));
+  objs.push_back((AnyObject*) ellipsoid2);
+
   
   sce.objs = objs;
   
   vector<light_src*> light;
-  light_src* light_src1 = new light_src(0, Point3D(0, 0, 100), Vector3D(-1, 1, -1), Vector3D(1, 1, 1));
-  //light.push_back(light_src1);
+  light_src* light_src1 = new light_src(0, Point3D(0, 0, 0), Vector3D(-1, 1, -1), Vector3D(1, 1, 1));
+  light.push_back(light_src1);
 
   light_src* light_src2 = new light_src(2, Point3D(0, -30, 20), Vector3D(0.2, 1.4, -1), Vector3D( 1, 1, 1), 30);
-  light.push_back(light_src2);
+  //light.push_back(light_src2);
   
-  light_src* light_src3 = new light_src(1, Point3D(0, -20, 50), Vector3D(0, 0, -1), Vector3D( 1, 1, 1), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 0.25, 0.25);
-  //light.push_back(light_src3);
+  light_src* light_src3 = new light_src(1, Point3D(-20, 0, 50), Vector3D(0, 0, -1), Vector3D( 1, 1, 1), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 0.25, 0.25);
+  light.push_back(light_src3);
   
 
   Shader shd = Shader(light, Color(20, 23, 30), Color(220, 200, 250), Color(240, 240, 240));
