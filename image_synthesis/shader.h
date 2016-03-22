@@ -43,6 +43,26 @@ public:
         bool normal_map_on = true;
         Color clr_sum = Color(0, 0, 0); // add all shading of different light source
         
+        
+        Color clr = cm0;
+        if (objs[object_index]->texture_type == 1) {
+            //type 1: texture mapping
+            tuple<Color, Color, Vector3D> texture_mapping_rtn = TextureMapping(ph, nh, objs[object_index], normal_map_on);
+            cm0 = get<0>(texture_mapping_rtn);
+            cm1 = get<1>(texture_mapping_rtn);
+            nh = get<2>(texture_mapping_rtn);
+        }else if(objs[object_index]->texture_type == 2){
+            //type 2: solid texture
+            tuple<Color, Color> texture_mapping_rtn = SolidTexture(ph, nh, objs[object_index], cm0);
+            cm0 = get<0>(texture_mapping_rtn);
+            cm1 = get<1>(texture_mapping_rtn);
+        }else if(objs[object_index]->texture_type == 3){
+            //type 3: 3D Julia Set
+            cm0 = objs[object_index]->textures[0]->Get3DJulia(ph, Point3D(0, 0, 20));
+            cm1 = cm0;
+        }
+        
+        
         for (int light_index = 0; light_index < light_num; light_index++) {
             Vector3D nhl;  //normal vector from light position to hitpoint
             if (light[light_index]->type == 0) {
@@ -53,13 +73,6 @@ public:
                 nhl = Normalize(ph - light[light_index]->position);
             }
             
-            Color clr = cm0;
-            if (objs[object_index]->textures.size() > 0) {
-                tuple<Color, Color, Vector3D> texture_mapping_rtn = TextureMapping(ph, nh, eye, nhl, light_index, objs[object_index], normal_map_on);
-                cm0 = get<0>(texture_mapping_rtn);
-                cm1 = get<1>(texture_mapping_rtn);
-                nh = get<2>(texture_mapping_rtn);
-            }
             
             clr = CalcDiffuse(cm0, cm1, ph, nh, eye, nhl, light_index);
             clr = CalcSpecular(clr, ph, nh, eye, nhl, light_index);
@@ -76,7 +89,7 @@ public:
     
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-    tuple<Color, Color, Vector3D> TextureMapping(Point3D ph, Vector3D nh, View eye, Vector3D nhl, int light_index, AnyObject* obj, bool normal_map_on){
+    tuple<Color, Color, Vector3D> TextureMapping(Point3D ph, Vector3D nh, AnyObject* obj, bool normal_map_on){
         Color cm0, cm1;
         if (obj->GetObjectType() == "Sphere") {
             Sphere* sph = (Sphere*) obj;
@@ -133,9 +146,9 @@ public:
         }else if(obj->GetObjectType() == "Plane"){
             Plane* pln = (Plane*) obj;
             //cout << (int)DotProduct(pln->n0, ph - pln->pi) << endl;
-            double x = DotProduct(pln->n0, ph - pln->pi) / (pln->textures[0]->width * pln->textures[0]->sx);
+            double x = DotProduct(pln->n0, ph - pln->pi) / (pln->textures[0]->sx);
             x = x - int(x);
-            double y = DotProduct(pln->n1, ph - pln->pi) / (pln->textures[0]->height * pln->textures[0]->sy);
+            double y = DotProduct(pln->n1, ph - pln->pi) / (pln->textures[0]->sy);
             y = y - int(y);
             //cout << "x: " << x << "  y: " << y << endl;
             x = (x < 0)? x + 1 : x;
@@ -158,6 +171,36 @@ public:
         return make_tuple(cm0, cm1, nh);
     }
     
+    
+    
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+    
+    
+    tuple<Color, Color> SolidTexture(Point3D ph, Vector3D nh, AnyObject* obj, Color cm0_in){
+        double t = DotProduct(ph - obj->textures[0]->p_center, obj->textures[0]->n2);
+        Point3D pp = ph - obj->textures[0]->n2 * t;
+        double x = DotProduct(pp - obj->textures[0]->p00, obj->textures[0]->n0) / obj->textures[0]->sx;
+        double y = DotProduct(pp - obj->textures[0]->p00, obj->textures[0]->n1) / obj->textures[0]->sy;
+        
+//        x = x - int(x);
+//        y = y - int(y);
+//        x = (x < 0)? x + 1 : x;
+//        y = (y < 0)? y + 1 : y;
+        Color cm0, cm1;
+        if (x > 0 && x < 1 && y > 0 && y < 1) {
+            cm0 = obj->textures[0]->GetColorPlane(x, y);
+            cm1 = obj->textures[1]->GetColorPlane(x, y);
+        }else{
+            cm0 = cm0_in;
+            cm1 = ambient_color;
+            
+            //cm0 = Color(0xffffff);
+            //cm1 = cm0;
+        }
+        
+        return make_tuple(cm0, cm1);
+    }
     
     
 //////////////////////////////////////////////////////////////////////////////////////////////////

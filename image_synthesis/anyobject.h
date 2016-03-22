@@ -18,6 +18,9 @@ public:
     virtual const string GetObjectType() = 0;
     //at least 2 texture maps: first <-> the normal map; second <-> darker map
     vector<Texture*> textures;
+    //type: 0 No texture mapping    type: 1  texture mapping     type: 2 solid texture(image projecting)
+    //type: 3 3D Julia Set
+    int texture_type;
     //    virtual void SetN(Vector3D n0, Vector3D n1, Vector3D n2) = 0;
     //    virtual void SetS(float s0, float s1, float s2) = 0;
     void setTexture(string texture_file_name){
@@ -30,11 +33,12 @@ public:
 //////////////////////////////////////////////////////////////////////////////////////////////////
 class Plane : public AnyObject{
 public:
+    Color clr;
     Point3D pi;
     Vector3D n0; // n0
     Vector3D n1; // n1
     Vector3D ni; // ni is normal vector of the plane
-    Color clr;
+    
     
     Plane(){
         pi = Point3D(0, 0, 0);
@@ -81,9 +85,9 @@ public:
 class Sphere : public AnyObject{
     //(p - pi) dot_product (p - pi) - r^2 = 0
 public:
+    Color clr;
     Point3D pCenter;
     double radius;  //radius of sphere
-    Color clr;
     Vector3D n0 = Vector3D(0, 1, 0);
     Vector3D n1 = Vector3D(-1, 0, 0);
     Vector3D n2 = Vector3D(0, 0, 1);

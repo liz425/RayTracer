@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include "color.h"
 #include <iostream>
+#include "vector3D.h"
 
 #define PI 3.1415927
 
@@ -26,10 +27,23 @@ public:
     int height = 0;
     double sx = 1;
     double sy = 1;
+    //following are parameters used only in solid texture
+    //using parallel projection
+    Vector3D n0 = Vector3D(1, 0, 0);
+    Vector3D n1 = Vector3D(0, 1, 0);
+    Vector3D n2 = Vector3D(0, 0, 1);
+    Point3D p_center;
+    Point3D p_projector;
+    Point3D p00;
+    double dist = 1;
+ 
     
-    Texture(string filename, double sx_in = 1, double sy_in = 1){
-        sx = sx_in;
-        sy = sy_in;
+    
+    Texture(string filename, double sx_in = 1, double sy_in = 1, Vector3D n0_in = Vector3D(1, 0, 0), Vector3D n1_in = Vector3D(0, 1, 0), Vector3D n2_in = Vector3D(0, 0, 1), Point3D p_center_in = Point3D(0, 0, 0)): sx(sx_in), sy(sy_in), n0(n0_in), n1(n1_in), n2(n2_in), p_center(p_center_in){
+        //parameter initialization
+        p_projector = p_center_in - n2 * dist;
+        p00 = p_center - n0 * (sx / 2) - n1 * (sy / 2);
+        
         
         const char* file_name = filename.c_str();
         FILE* fp = fopen(file_name, "rb");
@@ -41,7 +55,7 @@ public:
         unsigned char throw_away[84];
         // read the 54-byte header
         fread(info, sizeof(unsigned char), 54, fp);
-        //fread(throw_away, sizeof(unsigned char), 84, fp);
+//        fread(throw_away, sizeof(unsigned char), 84, fp);
         
         // extract image height and width from header
         width = *(int*)&info[18];
@@ -108,8 +122,6 @@ public:
     }
     
     Color GetJuliaSet(double x, double y){
-        x = x;
-        y = y;
         double u0 = -0.75;
         double v0 = 0;
         double T = 0.5;
@@ -120,6 +132,29 @@ public:
         }
 //        cout << sqrt(x * x + y * y) << endl;
         if (x * x + y * y - T * T > 0) {
+            return Color(0xff0000);
+        }else{
+            return Color(0x00ff00);
+        }
+    }
+    
+    Color Get3DJulia(Point3D ph, Point3D p_center){        
+        double a = 0;
+        Vector3D v = (ph - p_center) / 12.0;
+//        cout << v.length() << endl;
+        
+        double a0 = 1;
+        Vector3D v0 = Vector3D(1, 0, 0);
+        double T = 10;
+        
+        for (int i = 0; i < 5; i ++) {
+            double a_swap = a * a - DotProduct(v, v) + a0;
+            v = v * 2 * a + v0;
+            a = a_swap;
+        }
+               // cout << sqrt(a + v.length() - T) << endl;
+        
+        if (a + v.length() - T > 0) {
             return Color(0xff0000);
         }else{
             return Color(0x00ff00);
