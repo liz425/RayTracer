@@ -160,4 +160,19 @@ public:
             return Color(0x00ff00);
         }
     }
+    
+    Color Get3DFunction(Point3D ph, Point3D p_center){
+        Vector3D v = ph - p_center;
+//        cout << v.length() << endl;
+        double f = CrossProduct(Vector3D(v.x, 0, v.z), Vector3D(1, 0, 0)).length() + DotProduct(Vector3D(v.x, 0, v.z), Vector3D(1, 0, 0));
+        f = sin(f * PI);
+        double T = 0;
+        
+        
+        if (f - T > 0) {
+            return Color(250, 235, 190);
+        }else{
+            return Color(90, 190, 250);
+        }
+    }
 };

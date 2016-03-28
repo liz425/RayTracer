@@ -71,7 +71,7 @@ Color CalcSubPixel(View eye, vector<AnyObject*> objs, Shader shd){
             cm0 = get<0>(intsec);
             ph = get<2>(intsec);
             nh = get<3>(intsec);
-            no_border = (objs[i]->GetObjectType() == "Plane");
+            no_border = (objs[i]->GetObjectType() == "Plane" || objs[i]->GetObjectType() == "Mesh");
         }
     }
   ////cout << t_min << endl;
@@ -243,27 +243,27 @@ int main(int argc, char *argv[])
 {
   width = 1024;
   height = 1024;
-  int alias = 0;
+  int alias = 3;
   Scene sce;
-//  sce.p_eye = Point3D(0, -50, 0);
-//  sce.v_view = Vector3D(0, 1, 0);
-  sce.p_eye = Point3D(0, -50, 20);
-  sce.v_view = Vector3D(0, 1, 0);
-  sce.v_up = Vector3D(0, 0, 1);
-  sce.dist =3;
-  sce.SetCamera();
+    //  sce.p_eye = Point3D(0, -50, 0);
+    //  sce.v_view = Vector3D(0, 1, 0);
+    sce.p_eye = Point3D(50, -50, 20);
+    sce.v_view = Vector3D(-1, 1, 0);
+    sce.v_up = Vector3D(0, 0, 1);
+    sce.dist = 6;
+    sce.s_x = 10;
+    sce.s_y = 10;
+    sce.SetCamera();
   
   
   pixmap = new unsigned char[width * height * 3];
   vector<AnyObject*> objs;
   
-    AnyObject* plane1 = (AnyObject*)new Plane(Point3D(-80, 25, -80), Vector3D(0, -1, 0), Vector3D(-1, 0, 0), Color(214, 147, 44));
+    AnyObject* plane1 = (AnyObject*)new Plane(Point3D(-80, 50, -80), Vector3D(0, -1, 0), Vector3D(-1, 0, 0), Color(214, 147, 44));
     Texture* t0_pln1 = new Texture("fall.bmp", 200, 200);
     Texture* t1_pln1 = new Texture("fall.bmp", 200, 200);
     Texture* t2_pln1 = new Texture("fall.bmp", 200, 200);
-//    Texture* t0_pln1 = new Texture("star0.bmp", 50, 50, Vector3D(1, 0, 0), Vector3D(0, 1, 1), Vector3D(0, 1, -1), Point3D(0, 0, 20));
-//    Texture* t1_pln1 = new Texture("star1.bmp", 50, 50, Vector3D(1, 0, 0), Vector3D(0, 1, 1), Vector3D(0, 1, -1), Point3D(0, 0, 20));
-//    Texture* t2_pln1 = new Texture("star0.bmp");
+
     plane1->textures.push_back(t0_pln1);
     plane1->textures.push_back(t1_pln1);
     plane1->textures.push_back(t2_pln1);
@@ -275,68 +275,44 @@ int main(int argc, char *argv[])
     Texture* t0_pln2 = new Texture("texture0.bmp", 50, 50);
     Texture* t1_pln2 = new Texture("texture1.bmp", 50, 50);
     Texture* t2_pln2 = new Texture("texture0.bmp", 50, 50);
-//    Texture* t0_pln2 = new Texture("star0.bmp", 50, 50, Vector3D(1, 0, 0), Vector3D(0, 1, 1), Vector3D(0, 1, -1), Point3D(0, 0, 20));
-//    Texture* t1_pln2 = new Texture("star1.bmp", 50, 50, Vector3D(1, 0, 0), Vector3D(0, 1, 1), Vector3D(0, 1, -1), Point3D(0, 0, 20));
-//    Texture* t2_pln2 = new Texture("star0.bmp");
+
     plane2->textures.push_back(t0_pln2);
     plane2->textures.push_back(t1_pln2);
     plane2->textures.push_back(t2_pln2);
     plane2->texture_type = 1;
     objs.push_back(plane2);
     
-//  AnyObject* plane3 = (AnyObject*)new Plane(Point3D(-500, 0, 0), Vector3D(1, 0, 0), Vector3D(-1, 0, -1), Color(100, 200, 150));
-//  objs.push_back(plane3);
-  
+
+  /**
   AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(0, 0, 20), 12, Color(73, 179, 248));
     Texture* t0_sph1 = new Texture("wall0.bmp", 30, 30, Vector3D(1, 0, 0), Vector3D(0, 0, 1), Vector3D(0, -1, 0), Point3D(0, 0, 20));
     Texture* t1_sph1 = new Texture("wall1.bmp", 30,30, Vector3D(1, 0, 0), Vector3D(0, 0, 1), Vector3D(0, -1, 0), Point3D(0, 0, 20));
     Texture* t2_sph1 = new Texture("wall0.bmp");
-//    Texture* t0_sph1 = new Texture("all.bmp");
-//    Texture* t1_sph1 = new Texture("all.bmp");
+
 
     sphere1->textures.push_back(t0_sph1);
     sphere1->textures.push_back(t1_sph1);
     sphere1->textures.push_back(t2_sph1);
-    sphere1->texture_type = 2;
+    sphere1->texture_type = 3;
     objs.push_back(sphere1);
-  
-//  AnyObject* sphere2 = (AnyObject*)new Sphere(Point3D(10, 0, 7), 8, Color(50, 200, 100));
-//  objs.push_back(sphere2);
-//  
-//  AnyObject* sphere3 = (AnyObject*)new Sphere(Point3D(-10, 0, 7), 8, Color(250, 100, 70));
-//  objs.push_back(sphere3);
-//  
-//  AnyObject* sphere4 = (AnyObject*)new Sphere(Point3D(0, 10, -7), 8, Color(100, 100, 250));
-//  objs.push_back(sphere4);
-//  
-//  AnyObject* sphere5 = (AnyObject*)new Sphere(Point3D(0, -10, -7), 8, Color(250, 230, 70));
-//  objs.push_back(sphere5);
-  
-  Cone* cone1 = new Cone();
-  cone1->SetN(Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1));
-  cone1->SetS(1, 1, 3);
-  cone1->SetPCenter(Point3D(-30, 10, 0));
-  cone1->SetColor(Color(148, 199, 111));
-  //objs.push_back((AnyObject*) cone1);
+  */
+    
 
-  Ellipsoid* ellipsoid1 = new Ellipsoid();
-  ellipsoid1->SetN(Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1));
-  ellipsoid1->SetS(8, 8, 15);
-  ellipsoid1->SetPCenter(Point3D(35, 10, 0));
-  ellipsoid1->SetColor(Color(192, 57, 153));
-  //objs.push_back((AnyObject*) ellipsoid1);
+    AnyObject* mesh1 = (AnyObject*)new Mesh("tetrahedron.obj", Point3D(0, -20, 20), 8);
+//    AnyObject* mesh1 = (AnyObject*)new Mesh("cube.obj", Point3D(0, -40, 20), 3);
+//    AnyObject* mesh1 = (AnyObject*)new Mesh("dodecahandle.obj", Point3D(0, -40, 20), 1);
+    
+    objs.push_back(mesh1);
+    
+
+
   
   sce.objs = objs;
   
   vector<light_src*> light;
-  light_src* light_src1 = new light_src(0, Point3D(0, 0, 100), Vector3D(-1, 1, -1), Vector3D(1, 1, 1));
+  light_src* light_src1 = new light_src(1, Point3D(100, -30, 100), Vector3D(-1, 1, -1), Vector3D(1, 1, 1));
   light.push_back(light_src1);
 
-  light_src* light_src2 = new light_src(2, Point3D(0, -30, 20), Vector3D(0.2, 1.4, -1), Vector3D( 1, 1, 1), 30);
-  //light.push_back(light_src2);
-  
-  light_src* light_src3 = new light_src(1, Point3D(0, -20, 50), Vector3D(0, 0, -1), Vector3D( 1, 1, 1), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 0.25, 0.25);
-  //light.push_back(light_src3);
   
 
   Shader shd = Shader(light, Color(20, 23, 30), Color(220, 200, 250), Color(240, 240, 240));

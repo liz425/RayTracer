@@ -123,6 +123,11 @@ public:
   Point3D operator -(const Vector3D& v) const{
     return Point3D(x - v.x, y - v.y, z - v.z);
   }
+    
+    //PointB * double
+    Point3D operator *(const double& v) const{
+        return Point3D(x * v, y * v, z * v);
+    }
   
 };
 

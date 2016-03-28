@@ -8,7 +8,10 @@
 
 
 #pragma once
-#include <stdio.h>
+#include <iostream>     // std::cout
+#include <fstream>      // std::fstream
+#include <sstream>      // std::istringstream
+#include <string>       // std::string
 
 
 class AnyObject{
@@ -20,7 +23,7 @@ public:
     vector<Texture*> textures;
     //type: 0 No texture mapping    type: 1  texture mapping     type: 2 solid texture(image projecting)
     //type: 3 3D Julia Set
-    int texture_type;
+    int texture_type = 0;
     //    virtual void SetN(Vector3D n0, Vector3D n1, Vector3D n2) = 0;
     //    virtual void SetS(float s0, float s1, float s2) = 0;
     void setTexture(string texture_file_name){
@@ -338,5 +341,186 @@ public:
     
     const string GetObjectType(){
         return "HyperbolicParaboloid";
+    }
+};
+
+class Triangle : public AnyObject{
+public:
+    Color clr = Color(150, 200, 110);
+    Point3D p_center;
+    Point3D p0, p1, p2;
+    Vector3D normal, normal_p0, normal_p1, normal_p2;
+    
+    
+    Triangle(Point3D p0_in = Point3D(0, 0, 0), Point3D p1_in = Point3D(1, 0, 0), Point3D p2_in = Point3D(0, 1, 0), Vector3D n0 = Vector3D(1, 0, 0), Vector3D n1 = Vector3D(1, 0, 0), Vector3D n2 = Vector3D(1, 0, 0)):p0(p0_in), p1(p1_in), p2(p2_in), normal_p0(n0), normal_p1(n1), normal_p2(n2){
+        normal_p0.normalize();
+        normal_p1.normalize();
+        normal_p2.normalize();
+        normal = CrossProduct(p1 - p0, p2 - p0);
+        normal.normalize();
+        p_center = Point3D((p0.x + p1.x + p2.x) / 3.0, (p0.y + p1.y + p2.y) / 3.0, (p0.z + p1.z + p2.z) / 3.0);
+    }
+    
+    const tuple<Color, double, Point3D, Vector3D> CalcIntersect(View eye){
+        //check if eye position behind the plane
+        if (DotProduct(this->normal, eye.pe - this->p_center) <= 0) {
+            //cout << "Wrong eye position: Behind the plane!" << endl;
+            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(normal));
+        }
+        
+        //When no intersection with the plane, return t = -1
+        if (DotProduct(this->normal, eye.npe) >= 0) {
+            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(normal));
+        }
+        
+        //Has intersection with the plane, then judge whether inside the triangle
+        double t = -DotProduct(this->normal, eye.pe - this->p_center)/DotProduct(this->normal, eye.npe);
+        
+        //ph: hit point
+        Point3D ph = eye.pe + eye.npe * t;
+        
+        //judge whether ph is inside triangle
+        Vector3D AA = CrossProduct(p1 - p0, p2 - p0);
+        //Vector3D A0 = CrossProduct(p1 - ph, p2 - ph);
+        Vector3D A1 = CrossProduct(p2 - ph, p0 - ph);
+        Vector3D A2 = CrossProduct(p0 - ph, p1 - ph);
+        
+        double u = (AA.x != 0)? A1.x / AA.x : ((AA.y != 0)? A1.y / AA.y : A1.z / AA.z);
+        double v = (AA.x != 0)? A2.x / AA.x : ((AA.y != 0)? A2.y / AA.y : A2.z / AA.z);
+        
+        if(u >= 0 && v >= 0 && (u + v) <= 1){
+            //Inside triangle
+            return make_tuple(this->clr, t, ph, normal);
+        }else{
+            //When outside the triangle, return t = -1
+            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(normal));
+        }
+    }
+    
+    const string GetObjectType(){
+        return "Triangle";
+    }
+
+};
+
+class Mesh : public AnyObject{
+public:
+    Color clr = Color(150, 200, 110);
+    vector<Point3D> vertices;
+    vector<Vector3D> normals;
+    vector<Triangle> triangles;
+    
+    //Open file and set triangles
+    Mesh(string filePath, Point3D mesh_origin = Point3D(0, 0, 0), double scale = 1){
+        const char* file_name = filePath.c_str();
+        ifstream ifs;
+        ifs.open(file_name);
+        if(ifs.fail()){
+            cout << "Can't open OBJ file: " << filePath << endl;
+            return;
+        }
+        
+        //Start reading file
+        cout << "File reading: " << filePath << endl;
+        string line;
+        
+        //different OBJ file format has different face parameters
+        //set default as 1
+        
+        int face_type = 1;
+        bool has_normal = false;
+        
+        while(ifs.peek() != EOF){
+            getline(ifs, line);
+            
+            if(line.substr(0,2) == "v "){
+                //check v for vertices
+                istringstream v(line.substr(2));
+                double x, y, z;
+                v >> x; v >> y; v >> z;
+                Point3D vertex = mesh_origin + (Point3D(x, y, z) - Point3D(0, 0, 0))* scale;
+                vertices.push_back(vertex);
+            }else if(line.substr(0,2) == "vt"){
+                //check vt for texture co-ordinate
+                continue;
+            }else if(line.substr(0,2) == "vn"){
+                has_normal = true;
+                //check vn for vertex normal
+                istringstream v(line.substr(2));
+                double x, y, z;
+                v >> x; v >> y; v >> z;
+                Vector3D normal = Vector3D(x, y, z);
+                normals.push_back(normal);
+            }else if(line.substr(0,2) == "f "){
+                //check f for faces
+                const char* chh=line.c_str();
+                int a = 1, b = 1, c = 1;    //to store vertex index, start from 1
+                int p = 1, q = 1, r = 1;    //to store texture index, start from 1
+                int l = 1, m = 1, n = 1;    //to store normal index, start from 1
+                
+                int para_cnt = 0;
+                if(face_type == 1){
+                    para_cnt = sscanf(chh = line.c_str(), "f %i %i %i", &a, &b, &c);
+                    if(para_cnt != 3){
+                        face_type = 2;
+                    }
+                }
+                
+                if(face_type == 2){
+                    para_cnt = sscanf(chh = line.c_str(), "f %i/%i %i/%i %i/%i", &a, &p, &b, &q, &c, &r);
+                    if(para_cnt != 6){
+                        face_type = 3;
+                    }
+                }
+                
+                if(face_type == 3){
+                    para_cnt = sscanf(chh = line.c_str(), "f %i/%i/%i %i/%i/%i %i/%i/%i", &a, &p, &l, &b, &q, &m, &c, &r, &n);
+                    if(para_cnt != 9){
+                        cout << "Can't read OBJ file correnctly: " << filePath << endl;
+                        return;
+                    }
+                }
+                
+                //index start form 1, should convert to start from 0
+                Triangle tri;
+                
+                if(has_normal){
+                    tri = Triangle(vertices[a - 1], vertices[b - 1], vertices[c - 1], normals[l - 1], normals[m - 1], normals[n - 1]);
+                }else{
+                    tri = Triangle(vertices[a - 1], vertices[b - 1], vertices[c - 1]);
+                }
+                
+                tri.clr = this->clr;
+                triangles.push_back(tri);
+            }else{
+                //start with '#', comments, skip
+                continue;
+            }
+        }
+        cout << "OBJ file reading finish." << endl;
+        
+    }
+    
+    const tuple<Color, double, Point3D, Vector3D> CalcIntersect(View eye){
+        double t_min = FLT_MAX;
+        tuple<Color, double, Point3D, Vector3D> intsec_min;
+        for(Triangle tri : triangles){
+            tuple<Color, double, Point3D, Vector3D> intsec = tri.CalcIntersect(eye);
+            double t_tmp = get<1>(intsec);
+            if (t_tmp >= 0 && t_tmp < t_min) {
+                t_min = t_tmp;
+                intsec_min = intsec;
+            }
+        }
+        
+        if(t_min > 0 && t_min != FLT_MAX){
+            return intsec_min;
+        }else{
+            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(Vector3D(0, 0, 0)));
+        }
+    }
+    
+    const string GetObjectType(){
+        return "Mesh";
     }
 };

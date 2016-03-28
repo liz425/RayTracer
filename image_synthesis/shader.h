@@ -57,9 +57,9 @@ public:
             cm0 = get<0>(texture_mapping_rtn);
             cm1 = get<1>(texture_mapping_rtn);
         }else if(objs[object_index]->texture_type == 3){
-            //type 3: 3D Julia Set
-            cm0 = objs[object_index]->textures[0]->Get3DJulia(ph, Point3D(0, 0, 20));
-            cm1 = cm0;
+            //type 3: 3D Function
+            cm0 = objs[object_index]->textures[0]->Get3DFunction(ph, Point3D(0, 0, 20));
+            cm1 = ambient_color;
         }
         
         
