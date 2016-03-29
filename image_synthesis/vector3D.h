@@ -131,3 +131,96 @@ public:
   
 };
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+class Vector2D{
+public:
+    double x, y;
+    
+    //Vector3D constructor
+    Vector2D(double x1, double y1): x(x1), y(y1){}
+    
+    Vector2D(){
+        x = 0; y = 0;
+    }
+    
+    void setV(double x_in, double y_in){
+        x = x_in; y = y_in;
+    }
+    
+    //operator overloading, support + - * /
+    Vector2D operator +(const Vector2D& v) const{
+        return (Vector2D(x + v.x, y + v.y));
+    }
+    
+    //vector subtraction: AX - AY = YX
+    Vector2D operator -(const Vector2D& v) const{
+        return (Vector2D(x - v.x, y - v.y));
+    }
+    
+    Vector2D operator /(const double& v) const{
+        return (Vector2D(x / v, y / v));
+    }
+    
+    Vector2D operator *(const double& v) const{
+        return (Vector2D(x * v, y * v));
+    }
+    
+    double length(){
+        return sqrt(x * x + y * y);
+    }
+    
+    //member function normalize will change Vector3D object itself
+    Vector2D normalize(){
+        double l = this->length();
+        if (l != 0) {
+            x /= l;
+            y /= l;
+        }
+        return *this;
+    }
+    
+    //define dot product and cross_product of vectors
+    double dot(const Vector2D& v) const{
+        return (x * v.x + y * v.y);
+    }
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+class Point2D{
+public:
+    double x, y;
+    
+    Point2D(double x_in, double y_in){
+        x = x_in; y = y_in;
+    }
+    
+    Point2D(){
+        x = 0; y = 0;
+    }
+    
+    //subtraction of Point2Ds generates Vector2D
+    Vector2D operator -(const Point2D& p) const{
+        return Vector2D(x - p.x, y - p.y);
+    }
+    
+    //PointA + VectorAB = PointB
+    Point2D operator +(const Vector2D& v) const{
+        return Point2D(x + v.x, y + v.y);
+    }
+    
+    //PointB - VectorAB = PointA
+    Point2D operator -(const Vector2D& v) const{
+        return Point2D(x - v.x, y - v.y);
+    }
+    
+    //PointB * double
+    Point2D operator *(const double& v) const{
+        return Point2D(x * v, y * v);
+    }
+};
+
+
+    
+

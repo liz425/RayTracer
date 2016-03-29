@@ -38,16 +38,16 @@ public:
     
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-    Color shading(Color cm0, Color cm1, Point3D ph, Vector3D nh, View eye, bool no_border, vector<AnyObject*> objs, int object_index){
+    Color shading(Color cm0, Color cm1, Point3D ph, Vector3D nh, View eye, bool no_border, vector<AnyObject*> objs, int object_index, Vector2D UV = Vector2D(0, 0)){
         int light_num = (int)light.size();
-        bool normal_map_on = true;
+        bool normal_map_on = false;
         Color clr_sum = Color(0, 0, 0); // add all shading of different light source
         
         
         Color clr = cm0;
         if (objs[object_index]->texture_type == 1) {
             //type 1: texture mapping
-            tuple<Color, Color, Vector3D> texture_mapping_rtn = TextureMapping(ph, nh, objs[object_index], normal_map_on);
+            tuple<Color, Color, Vector3D> texture_mapping_rtn = TextureMapping(ph, nh, objs[object_index], normal_map_on, UV);
             cm0 = get<0>(texture_mapping_rtn);
             cm1 = get<1>(texture_mapping_rtn);
             nh = get<2>(texture_mapping_rtn);
@@ -89,7 +89,7 @@ public:
     
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-    tuple<Color, Color, Vector3D> TextureMapping(Point3D ph, Vector3D nh, AnyObject* obj, bool normal_map_on){
+    tuple<Color, Color, Vector3D> TextureMapping(Point3D ph, Vector3D nh, AnyObject* obj, bool normal_map_on, Vector2D UV = Vector2D(0, 0)){
         Color cm0, cm1;
         if (obj->GetObjectType() == "Sphere") {
             Sphere* sph = (Sphere*) obj;
@@ -155,13 +155,26 @@ public:
             y = (y < 0)? y + 1 : y;
             
             
-            cm0 = obj->textures[0]->GetColorPlane(x, y);
-            cm1 = obj->textures[1]->GetColorPlane(x, y);
+            cm0 = pln->textures[0]->GetColorPlane(x, y);
+            cm1 = pln->textures[1]->GetColorPlane(x, y);
             //            cm0 = obj->textures[0]->GetJuliaSet(x, y);
             //            cm1 = obj->textures[1]->GetJuliaSet(x, y);
             
-            if (obj->textures.size() >= 3 && normal_map_on == true) {
+            if (pln->textures.size() >= 3 && normal_map_on == true) {
                 Color c_nm = pln->textures[2]->GetColorPlane(x, y);
+                Vector3D v_nm = Vector3D(c_nm.r * 2 / 255.0 - 1, c_nm.g * 2 / 255.0 - 1, c_nm.b * 2 / 255.0 - 1);
+                //                cout << v_nm.x << endl;
+                nh = nh + v_nm * normal_map_scale;
+            }
+        }else if(obj->GetObjectType() == "Mesh"){
+            Mesh* msh = (Mesh*) obj;
+            double x = UV.x;
+            double y = UV.y;
+            cm0 = msh->textures[0]->GetColorPlane(x, y);
+            cm1 = msh->textures[1]->GetColorPlane(x, y);
+            
+            if (obj->textures.size() >= 3 && normal_map_on == true) {
+                Color c_nm = msh->textures[2]->GetColorPlane(x, y);
                 Vector3D v_nm = Vector3D(c_nm.r * 2 / 255.0 - 1, c_nm.g * 2 / 255.0 - 1, c_nm.b * 2 / 255.0 - 1);
                 //                cout << v_nm.x << endl;
                 nh = nh + v_nm * normal_map_scale;

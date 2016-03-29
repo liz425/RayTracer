@@ -26,8 +26,8 @@ public:
     int texture_type = 0;
     //    virtual void SetN(Vector3D n0, Vector3D n1, Vector3D n2) = 0;
     //    virtual void SetS(float s0, float s1, float s2) = 0;
-    void setTexture(string texture_file_name){
-        Texture* new_texture = new Texture(texture_file_name);
+    void AddTexture(string texture_file_name, double sx = 1.0, double sy = 1.0){
+        Texture* new_texture = new Texture(texture_file_name, sx, sy);
         textures.push_back(new_texture);
     }
 };
@@ -350,15 +350,28 @@ public:
     Point3D p_center;
     Point3D p0, p1, p2;
     Vector3D normal, normal_p0, normal_p1, normal_p2;
+    //texture map coordinate
+    Vector2D UV_p0, UV_p1, UV_p2;
+    //u, v: UV value for the hitpoint
+    double u = 0, v = 0;
     
     
-    Triangle(Point3D p0_in = Point3D(0, 0, 0), Point3D p1_in = Point3D(1, 0, 0), Point3D p2_in = Point3D(0, 1, 0), Vector3D n0 = Vector3D(1, 0, 0), Vector3D n1 = Vector3D(1, 0, 0), Vector3D n2 = Vector3D(1, 0, 0)):p0(p0_in), p1(p1_in), p2(p2_in), normal_p0(n0), normal_p1(n1), normal_p2(n2){
-        normal_p0.normalize();
-        normal_p1.normalize();
-        normal_p2.normalize();
+    Triangle(Point3D p0_in = Point3D(0, 0, 0), Point3D p1_in = Point3D(1, 0, 0), Point3D p2_in = Point3D(0, 1, 0)):p0(p0_in), p1(p1_in), p2(p2_in){
         normal = CrossProduct(p1 - p0, p2 - p0);
         normal.normalize();
         p_center = Point3D((p0.x + p1.x + p2.x) / 3.0, (p0.y + p1.y + p2.y) / 3.0, (p0.z + p1.z + p2.z) / 3.0);
+    }
+    
+    void SetNormal(Vector3D n0 = Vector3D(1, 0, 0), Vector3D n1 = Vector3D(1, 0, 0), Vector3D n2 = Vector3D(1, 0, 0)){
+        normal_p0 = Normalize(n0);
+        normal_p1 = Normalize(n1);
+        normal_p2 = Normalize(n2);
+    }
+    
+    void SetUV(Vector2D t0 = Vector2D(0, 0), Vector2D t1 = Vector2D(1, 0), Vector2D t2 = Vector2D(0, 1)){
+        UV_p0 = t0;
+        UV_p1 = t1;
+        UV_p2 = t2;
     }
     
     const tuple<Color, double, Point3D, Vector3D> CalcIntersect(View eye){
@@ -385,8 +398,8 @@ public:
         Vector3D A1 = CrossProduct(p2 - ph, p0 - ph);
         Vector3D A2 = CrossProduct(p0 - ph, p1 - ph);
         
-        double u = (AA.x != 0)? A1.x / AA.x : ((AA.y != 0)? A1.y / AA.y : A1.z / AA.z);
-        double v = (AA.x != 0)? A2.x / AA.x : ((AA.y != 0)? A2.y / AA.y : A2.z / AA.z);
+        u = (AA.x != 0)? A1.x / AA.x : ((AA.y != 0)? A1.y / AA.y : A1.z / AA.z);
+        v = (AA.x != 0)? A2.x / AA.x : ((AA.y != 0)? A2.y / AA.y : A2.z / AA.z);
         
         if(u >= 0 && v >= 0 && (u + v) <= 1){
             //Inside triangle
@@ -395,6 +408,10 @@ public:
             //When outside the triangle, return t = -1
             return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(normal));
         }
+    }
+    
+    Vector2D GetUV(){
+        return UV_p0 * (1 - u - v) + UV_p1 * u + UV_p2 * v;
     }
     
     const string GetObjectType(){
@@ -408,7 +425,11 @@ public:
     Color clr = Color(150, 200, 110);
     vector<Point3D> vertices;
     vector<Vector3D> normals;
+    //Texture mapping UV for vertices
+    vector<Vector2D> UVs;
     vector<Triangle> triangles;
+    //UV value for the hitpoint
+    Vector2D UV_hitpoint;
     
     //Open file and set triangles
     Mesh(string filePath, Point3D mesh_origin = Point3D(0, 0, 0), double scale = 1){
@@ -429,6 +450,7 @@ public:
         
         int face_type = 1;
         bool has_normal = false;
+        bool has_texture = false;
         
         while(ifs.peek() != EOF){
             getline(ifs, line);
@@ -442,7 +464,13 @@ public:
                 vertices.push_back(vertex);
             }else if(line.substr(0,2) == "vt"){
                 //check vt for texture co-ordinate
-                continue;
+                has_texture = true;
+                istringstream v(line.substr(2));
+                double x, y;
+                v >> x; v >> y;
+                Vector2D t_coor = Vector2D(x, y);
+                UVs.push_back(t_coor);
+                
             }else if(line.substr(0,2) == "vn"){
                 has_normal = true;
                 //check vn for vertex normal
@@ -482,12 +510,14 @@ public:
                 }
                 
                 //index start form 1, should convert to start from 0
-                Triangle tri;
+                Triangle tri = Triangle(vertices[a - 1], vertices[b - 1], vertices[c - 1]);
                 
                 if(has_normal){
-                    tri = Triangle(vertices[a - 1], vertices[b - 1], vertices[c - 1], normals[l - 1], normals[m - 1], normals[n - 1]);
-                }else{
-                    tri = Triangle(vertices[a - 1], vertices[b - 1], vertices[c - 1]);
+                    tri.SetNormal(normals[l - 1], normals[m - 1], normals[n - 1]);
+                }
+                
+                if(has_texture){
+                    tri.SetUV(UVs[p - 1], UVs[q - 1], UVs[r - 1]);
                 }
                 
                 tri.clr = this->clr;
@@ -510,6 +540,7 @@ public:
             if (t_tmp >= 0 && t_tmp < t_min) {
                 t_min = t_tmp;
                 intsec_min = intsec;
+                UV_hitpoint = tri.GetUV();
             }
         }
         
@@ -518,6 +549,10 @@ public:
         }else{
             return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(Vector3D(0, 0, 0)));
         }
+    }
+    
+    Vector2D GetUV(){
+        return UV_hitpoint;
     }
     
     const string GetObjectType(){
