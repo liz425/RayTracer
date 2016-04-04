@@ -17,6 +17,7 @@
 class AnyObject{
 public:
     Color clr;
+    double ks = 0; //reflection coefficient, 1 means total reflection
     virtual const tuple<Color, double, Point3D, Vector3D> CalcIntersect(View eye) = 0;
     virtual const string GetObjectType() = 0;
     //at least 2 texture maps: first <-> the normal map; second <-> darker map
@@ -49,16 +50,18 @@ public:
         clr = Color(0, 0, 0);
     }
     
-    Plane(Point3D pi_in, Vector3D ni_in, Vector3D n0_in, Color clr_in): pi(pi_in), ni(ni_in), n0(n0_in), clr(clr_in){
+    Plane(Point3D pi_in, Vector3D ni_in, Vector3D n0_in, Color clr_in, double ks_in = 0): pi(pi_in), ni(ni_in), n0(n0_in), clr(clr_in){
+        ks = ks_in;
         n1 = CrossProduct(n0, ni);
     }
     
-    Plane(double pi_x, double pi_y, double pi_z, double ni_x, double ni_y, double ni_z, double n0_x, double n0_y, double n0_z, char r, char g, char b){
+    Plane(double pi_x, double pi_y, double pi_z, double ni_x, double ni_y, double ni_z, double n0_x, double n0_y, double n0_z, char r, char g, char b, double ks_in = 0){
         pi = Point3D(pi_x, pi_y, pi_z);
         ni = Vector3D(ni_x, ni_y, ni_z);
         n0 = Vector3D(n0_x, n0_y, n0_z);
         n1 = CrossProduct(n0, ni);
         clr = Color(r, g, b);
+        ks = ks_in;
     }
     
     const tuple<Color, double, Point3D, Vector3D> CalcIntersect(View eye){
@@ -101,12 +104,15 @@ public:
         clr = Color(0, 0, 0);
     }
     
-    Sphere(Point3D pCenter_in, double radius_in, Color clr_in): pCenter(pCenter_in), radius(radius_in), clr(clr_in){}
+    Sphere(Point3D pCenter_in, double radius_in, Color clr_in, double ks_in = 0): pCenter(pCenter_in), radius(radius_in), clr(clr_in){
+        ks = ks_in;
+        }
     
-    Sphere(double x_in, double y_in, double z_in, double radius_in, char r_in, char g_in, char b_in){
+    Sphere(double x_in, double y_in, double z_in, double radius_in, char r_in, char g_in, char b_in, double ks_in){
         pCenter = Point3D(x_in, y_in, z_in);
         radius = radius_in;
         clr = Color(r_in, g_in, b_in);
+        ks = ks_in;
     }
     
     
@@ -185,6 +191,10 @@ public:
     
     void SetColor(Color clr_in){
         clr = clr_in;
+    }
+    
+    void SetKs(double ks_in){
+        ks = ks_in;
     }
     
     const tuple<Color, double, Point3D, Vector3D> CalcIntersect(View eye){
@@ -356,7 +366,8 @@ public:
     double u = 0, v = 0;
     
     
-    Triangle(Point3D p0_in = Point3D(0, 0, 0), Point3D p1_in = Point3D(1, 0, 0), Point3D p2_in = Point3D(0, 1, 0)):p0(p0_in), p1(p1_in), p2(p2_in){
+    Triangle(Point3D p0_in = Point3D(0, 0, 0), Point3D p1_in = Point3D(1, 0, 0), Point3D p2_in = Point3D(0, 1, 0), double ks_in = 0):p0(p0_in), p1(p1_in), p2(p2_in){
+        ks = ks_in;
         normal = CrossProduct(p1 - p0, p2 - p0);
         normal.normalize();
         p_center = Point3D((p0.x + p1.x + p2.x) / 3.0, (p0.y + p1.y + p2.y) / 3.0, (p0.z + p1.z + p2.z) / 3.0);
@@ -432,7 +443,8 @@ public:
     Vector2D UV_hitpoint;
     
     //Open file and set triangles
-    Mesh(string filePath, Point3D mesh_origin = Point3D(0, 0, 0), double scale = 1){
+    Mesh(string filePath, Point3D mesh_origin = Point3D(0, 0, 0), double scale = 1, double ks_in = 0){
+        ks = ks_in;
         const char* file_name = filePath.c_str();
         ifstream ifs;
         ifs.open(file_name);
@@ -510,7 +522,7 @@ public:
                 }
                 
                 //index start form 1, should convert to start from 0
-                Triangle tri = Triangle(vertices[a - 1], vertices[b - 1], vertices[c - 1]);
+                Triangle tri = Triangle(vertices[a - 1], vertices[b - 1], vertices[c - 1], ks);
                 
                 if(has_normal){
                     tri.SetNormal(normals[l - 1], normals[m - 1], normals[n - 1]);

@@ -22,7 +22,8 @@
 #define PI 3.14159265
 #endif
 
-
+#define REFLECTION_TIMES_THRES 5
+#define REFLECTION_KTOTAL_THRES 0.05
 
 
 using namespace std;
@@ -46,7 +47,7 @@ unsigned char *pixmap;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-Color CalcSubPixel(View eye, vector<AnyObject*> objs, Shader shd){
+Color CalcSubPixel(View eye, vector<AnyObject*>& objs, Shader shd, int reflection_times, double reflection_ktotal){
     //for all objects, find the closest object
     int obj_number = (int)objs.size();
     int object_index = 0;
@@ -73,11 +74,26 @@ Color CalcSubPixel(View eye, vector<AnyObject*> objs, Shader shd){
             }
         }
     }
-  ////cout << t_min << endl;
-  if(t_min != FLT_MAX){
+    ////cout << t_min << endl;
+    if(t_min != FLT_MAX){
     clr = shd.shading(cm0, shd.ambient_color, ph, nh, eye, no_border, objs, object_index, UV);
-  }
-  return clr;
+    }
+    
+    //calculate reflection
+    double ks = objs[object_index]->ks;
+    
+//    if(objs[object_index]->GetObjectType() == "Sphere"){
+//        cout << ks << endl;
+//    }
+    
+    reflection_ktotal *= ks;
+    if(reflection_times < REFLECTION_TIMES_THRES && reflection_ktotal >= REFLECTION_KTOTAL_THRES){
+        Vector3D reflect_npe = eye.npe - nh * 2 * DotProduct(nh, eye.npe);
+        View reflect_view = View(ph, reflect_npe);
+        return clr * (1 - ks) + CalcSubPixel(reflect_view, objs, shd, reflection_times++, reflection_ktotal) * ks;
+    }else{
+        return clr;
+    }
 }
 
 
@@ -163,7 +179,7 @@ Color CalcPixel(Scene sce, Shader shd, int x, int y, int alias){
       double y_per = pointY / height;
       
       View eye = CalcView(sce, x_per, y_per);
-      Color clr_sub = CalcSubPixel(eye, sce.objs, shd);
+      Color clr_sub = CalcSubPixel(eye, sce.objs, shd, 0, 1.0);
       
       red += clr_sub.r;
       green += clr_sub.g;
@@ -180,7 +196,7 @@ Color CalcPixel(Scene sce, Shader shd, int x, int y, int alias){
     double x_per = (double)x / width;
     double y_per = (double)y / height;
     View eye = CalcView(sce, x_per, y_per);
-    clr = CalcSubPixel(eye, sce.objs, shd);
+    clr = CalcSubPixel(eye, sce.objs, shd, 0, 1.0);
   }
   return clr;
 }
@@ -188,23 +204,21 @@ Color CalcPixel(Scene sce, Shader shd, int x, int y, int alias){
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-void setPixels(Scene sce, Shader shd, int alias)
-{
+void setPixels(Scene sce, Shader shd, int alias){
     Color clr;
-//    Texture tt = Texture("all.bmp");
-  for (int y = 0; y < height; y++)
-  {
-    for (int x = 0; x < width; x++)
-    {
-      
-      int i = (y * width + x) * 3;
-      clr = CalcPixel(sce, shd, x, y, alias);
-//        clr = tt.GetColorSphere(x / 64 * 2 * PI, y / 48 * PI);
-      pixmap[i++] = clr.r;
-      pixmap[i++] = clr.g;
-      pixmap[i]   = clr.b;
+    for (int y = 0; y < height; y++){
+        for (int x = 0; x < width; x++){
+            int i = (y * width + x) * 3;
+            clr = CalcPixel(sce, shd, x, y, alias);
+            pixmap[i++] = clr.r;
+            pixmap[i++] = clr.g;
+            pixmap[i]   = clr.b;
+        }
+        
+        if(y % (height / 100) == 0){
+            cout << (y * 100 / height) << "%\n" << endl;
+        }
     }
-  }
 }
 
 static void windowResize(int w, int h)
@@ -242,14 +256,14 @@ int main(int argc, char *argv[])
 {
     width = 1024;
     height = 1024;
-    int alias = 0;
+    int alias = 3;
     Scene sce;
     //  sce.p_eye = Point3D(0, -50, 0);
     //  sce.v_view = Vector3D(0, 1, 0);
     sce.p_eye = Point3D(-50, -50, 20);
     sce.v_view = Vector3D(1, 1, 0);
     sce.v_up = Vector3D(0, 0, 1);
-    sce.dist = 6;
+    sce.dist = 8;
     sce.s_x = 10;
     sce.s_y = 10;
     sce.SetCamera();
@@ -274,8 +288,8 @@ int main(int argc, char *argv[])
     objs.push_back(plane2);
     
 
-  /**
-  AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(0, 0, 20), 12, Color(73, 179, 248));
+  
+  AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(0, 0, 20), 12, Color(73, 179, 248), 0.5);
     Texture* t0_sph1 = new Texture("wall0.bmp", 30, 30, Vector3D(1, 0, 0), Vector3D(0, 0, 1), Vector3D(0, -1, 0), Point3D(0, 0, 20));
     Texture* t1_sph1 = new Texture("wall1.bmp", 30,30, Vector3D(1, 0, 0), Vector3D(0, 0, 1), Vector3D(0, -1, 0), Point3D(0, 0, 20));
     Texture* t2_sph1 = new Texture("wall0.bmp");
@@ -286,18 +300,18 @@ int main(int argc, char *argv[])
     sphere1->textures.push_back(t2_sph1);
     sphere1->texture_type = 3;
     objs.push_back(sphere1);
-  */
+  
     
 
 //    AnyObject* mesh1 = (AnyObject*)new Mesh("tetrahedron.obj", Point3D(0, -20, 20), 8);
-    AnyObject* mesh1 = (AnyObject*)new Mesh("cube.obj", Point3D(0, -40, 20), 3);
+    AnyObject* mesh1 = (AnyObject*)new Mesh("cube.obj", Point3D(0, -40, 20), 3, 0.5);
 //    AnyObject* mesh1 = (AnyObject*)new Mesh("dodecahandle.obj", Point3D(0, -40, 20), 1);
     mesh1->AddTexture("star0.bmp", 1, 1);
     mesh1->AddTexture("star1.bmp", 1, 1);
     mesh1->texture_type = 1;
 
     
-    objs.push_back(mesh1);
+    //objs.push_back(mesh1);
     
 
 
