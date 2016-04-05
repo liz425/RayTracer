@@ -94,8 +94,8 @@ public:
     Color clr;
     Point3D pCenter;
     double radius;  //radius of sphere
-    Vector3D n0 = Vector3D(0, 1, 0);
-    Vector3D n1 = Vector3D(-1, 0, 0);
+    Vector3D n0 = Vector3D(1, 0, 0);
+    Vector3D n1 = Vector3D(0, 1, 0);
     Vector3D n2 = Vector3D(0, 0, 1);
     
     Sphere(){
@@ -104,7 +104,10 @@ public:
         clr = Color(0, 0, 0);
     }
     
-    Sphere(Point3D pCenter_in, double radius_in, Color clr_in, double ks_in = 0): pCenter(pCenter_in), radius(radius_in), clr(clr_in){
+    Sphere(Point3D pCenter_in, double radius_in, Color clr_in, Vector3D n0_in, Vector3D n1_in, Vector3D n2_in, double ks_in = 0): pCenter(pCenter_in), radius(radius_in), clr(clr_in){
+        n0 = n0_in;
+        n1 = n1_in;
+        n2 = n2_in;
         ks = ks_in;
         }
     
@@ -141,6 +144,67 @@ public:
         return "Sphere";
     }
 };
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+class Environment : public Sphere{
+    //(p - pi) dot_product (p - pi) - r^2 = 0
+public:
+    
+    Environment(){
+        pCenter = Point3D(0, 0, 0);
+        radius = 1;
+        clr = Color(0, 0, 0);
+    }
+    
+    Environment(Point3D pCenter_in, double radius_in, Color clr_in, Vector3D n0_in, Vector3D n1_in, Vector3D n2_in, double ks_in = 0){
+        clr = clr_in;
+        pCenter = pCenter_in;
+        radius = radius_in;
+        n0 = n0_in;
+        n1 = n1_in;
+        n2 = n2_in;
+        ks = ks_in;
+    }
+    
+    Environment(double x_in, double y_in, double z_in, double radius_in, char r_in, char g_in, char b_in, double ks_in = 0){
+        pCenter = Point3D(x_in, y_in, z_in);
+        radius = radius_in;
+        clr = Color(r_in, g_in, b_in);
+        ks = ks_in;
+    }
+    
+    
+    const tuple<Color, double, Point3D, Vector3D> CalcIntersect(View eye){
+        ////cout << eye.npe.length() << endl;
+        //Check if eye position inside the sphere, return -1 when true
+        if (DotProduct(eye.pe - this->pCenter, eye.pe - this->pCenter) - pow(this->radius, 2) >= 0){
+            //cout << "Wrong eye position: Outside of the Environment!" << endl;
+            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Vector3D(0, 0, 0));
+        }
+        
+        double B = DotProduct(eye.npe, (this->pCenter - eye.pe));
+        double C = DotProduct(eye.pe - this->pCenter, eye.pe - this->pCenter) - pow(this->radius, 2);
+        double delta = pow(B, 2) - C;
+        if (delta < 0) {   //when no intesection, return t = -1
+            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Vector3D(0, 0, 0));
+        }else{
+            double t = B + sqrt(delta);
+            //ph is the hit point
+            Point3D ph = eye.pe + eye.npe * t;
+//            cout << "Hit environment!!!!!!!\n" << endl;
+//            cout << clr.r << clr.g << clr.b << endl;
+            return make_tuple(this->clr, t, ph, Normalize(pCenter - ph));
+        }
+    }
+    
+    const string GetObjectType(){
+        return "Environment";
+    }
+};
+
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////

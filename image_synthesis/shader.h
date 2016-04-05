@@ -16,10 +16,11 @@
 #define PI 3.14159265
 #endif
 
-#define normal_map_scale  0.3
+#define normal_map_scale  0.1
 //specular type, 0 -> soft, 1 -> sharp, 2 -> other shape
 #define SpecularType 0
 //#define _hard_spot_light_
+#define _NORMAL_MAP
 
 class Shader{
     vector<light_src*> light;
@@ -38,9 +39,13 @@ public:
     
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-    Color shading(Color cm0, Color cm1, Point3D ph, Vector3D nh, View eye, bool no_border, vector<AnyObject*> objs, int object_index, Vector2D UV = Vector2D(0, 0)){
+    Color shading(Color cm0, Color cm1, Point3D ph, Vector3D& nh, View eye, bool no_border, vector<AnyObject*> objs, int object_index, Vector2D UV = Vector2D(0, 0)){
         int light_num = (int)light.size();
         bool normal_map_on = false;
+        
+#ifdef _NORMAL_MAP
+        normal_map_on = true;
+#endif
         Color clr_sum = Color(0, 0, 0); // add all shading of different light source
         
         
@@ -62,7 +67,10 @@ public:
             cm1 = ambient_color;
         }
         
-        
+        if(objs[object_index]->GetObjectType() == "Environment"){
+            return cm0;
+        }
+            
         for (int light_index = 0; light_index < light_num; light_index++) {
             Vector3D nhl;  //normal vector from light position to hitpoint
             if (light[light_index]->type == 0) {
@@ -91,7 +99,7 @@ public:
 //////////////////////////////////////////////////////////////////////////////////////////////////
     tuple<Color, Color, Vector3D> TextureMapping(Point3D ph, Vector3D nh, AnyObject* obj, bool normal_map_on, Vector2D UV = Vector2D(0, 0)){
         Color cm0, cm1;
-        if (obj->GetObjectType() == "Sphere") {
+        if (obj->GetObjectType() == "Sphere" || obj->GetObjectType() == "Environment") {
             Sphere* sph = (Sphere*) obj;
             //            cout << sph->radius << endl;
             //            cout << sph->pCenter.x << endl;
@@ -106,7 +114,7 @@ public:
             //            cout << y << endl;
             //            cout << z << endl;
             
-            double phi = acos(z);
+            double phi = PI - acos(z);
             double theta = 0;
             if (z != 1 && z != -1) {
                 long double sss = y / sqrt(1 - z*z);
@@ -124,8 +132,7 @@ public:
                     theta = 0;
                 }
                 
-                
-                //                cout << "theta: " << theta << endl;
+                //cout << "theta: " << theta << endl;
             }else{
                 theta = 0;
             }

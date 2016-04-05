@@ -55,7 +55,7 @@ public:
         unsigned char throw_away[84];
         // read the 54-byte header
         fread(info, sizeof(unsigned char), 54, fp);
-        fread(throw_away, sizeof(unsigned char), 84, fp);
+        //fread(throw_away, sizeof(unsigned char), 84, fp);
         
         // extract image height and width from header
         width = *(int*)&info[18];

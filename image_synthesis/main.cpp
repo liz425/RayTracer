@@ -76,7 +76,9 @@ Color CalcSubPixel(View eye, vector<AnyObject*>& objs, Shader shd, int reflectio
     }
     ////cout << t_min << endl;
     if(t_min != FLT_MAX){
-    clr = shd.shading(cm0, shd.ambient_color, ph, nh, eye, no_border, objs, object_index, UV);
+        //If we using normal map, then normal vector 'nh' may change due to normal map
+        //Thus shading function should also update 'nh' by using pass by reference: Vector3D& nh
+        clr = shd.shading(cm0, shd.ambient_color, ph, nh, eye, no_border, objs, object_index, UV);
     }
     
     //calculate reflection
@@ -87,10 +89,11 @@ Color CalcSubPixel(View eye, vector<AnyObject*>& objs, Shader shd, int reflectio
 //    }
     
     reflection_ktotal *= ks;
-    if(reflection_times < REFLECTION_TIMES_THRES && reflection_ktotal >= REFLECTION_KTOTAL_THRES){
+    reflection_times++;
+    if(reflection_times <= REFLECTION_TIMES_THRES && reflection_ktotal >= REFLECTION_KTOTAL_THRES){
         Vector3D reflect_npe = eye.npe - nh * 2 * DotProduct(nh, eye.npe);
         View reflect_view = View(ph, reflect_npe);
-        return clr * (1 - ks) + CalcSubPixel(reflect_view, objs, shd, reflection_times++, reflection_ktotal) * ks;
+        return clr * (1 - ks) + CalcSubPixel(reflect_view, objs, shd, reflection_times, reflection_ktotal) * ks;
     }else{
         return clr;
     }
@@ -241,8 +244,8 @@ static void windowDisplay()
 
 static void processMouse(int button, int state, int x, int y)
 {
-  if (state == GLUT_UP)
-    exit(0);               // Exit on mouse click.
+  //if (state == GLUT_UP)
+  //  exit(0);               // Exit on mouse click.
 }
 
 static void init(void)
@@ -254,8 +257,8 @@ static void init(void)
 
 int main(int argc, char *argv[])
 {
-    width = 1024;
-    height = 1024;
+    width = 600;
+    height = 600;
     int alias = 3;
     Scene sce;
     //  sce.p_eye = Point3D(0, -50, 0);
@@ -263,7 +266,10 @@ int main(int argc, char *argv[])
     sce.p_eye = Point3D(-50, -50, 20);
     sce.v_view = Vector3D(1, 1, 0);
     sce.v_up = Vector3D(0, 0, 1);
-    sce.dist = 8;
+//    sce.v_view = Vector3D(0, 0, -1);
+//    sce.v_up = Vector3D(1, 0, 0);
+    
+    sce.dist =5;
     sce.s_x = 10;
     sce.s_y = 10;
     sce.SetCamera();
@@ -272,66 +278,72 @@ int main(int argc, char *argv[])
     pixmap = new unsigned char[width * height * 3];
     vector<AnyObject*> objs;
   
-    AnyObject* plane1 = (AnyObject*)new Plane(Point3D(-80, 50, -80), Vector3D(0, -1, 0), Vector3D(-1, 0, 0), Color(214, 147, 44));
-    plane1->AddTexture("fall.bmp", 200, 200);
+    AnyObject* plane1 = (AnyObject*)new Plane(Point3D(-80, 50, -80), Vector3D(0, -1, 0), Vector3D(-1, 0, 0), Color(214, 147, 44), 0);
     plane1->AddTexture("fall.bmp", 200, 200);
     plane1->AddTexture("fall.bmp", 200, 200);
     plane1->texture_type = 1;
-    objs.push_back(plane1);
+//    objs.push_back(plane1);
   
     
     AnyObject* plane2 = (AnyObject*)new Plane(Point3D(0, 0, -20), Vector3D(0, 0, 1), Vector3D(1, 0, 0), Color(157, 139, 187));
     plane2->AddTexture("texture0.bmp", 50, 50);
     plane2->AddTexture("texture1.bmp", 50, 50);
-    plane2->AddTexture("texture0.bmp", 50, 50);
     plane2->texture_type = 1;
-    objs.push_back(plane2);
+//    objs.push_back(plane2);
     
 
   
-  AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(0, 0, 20), 12, Color(73, 179, 248), 0.5);
-    Texture* t0_sph1 = new Texture("wall0.bmp", 30, 30, Vector3D(1, 0, 0), Vector3D(0, 0, 1), Vector3D(0, -1, 0), Point3D(0, 0, 20));
-    Texture* t1_sph1 = new Texture("wall1.bmp", 30,30, Vector3D(1, 0, 0), Vector3D(0, 0, 1), Vector3D(0, -1, 0), Point3D(0, 0, 20));
-    Texture* t2_sph1 = new Texture("wall0.bmp");
-
-
-    sphere1->textures.push_back(t0_sph1);
-    sphere1->textures.push_back(t1_sph1);
-    sphere1->textures.push_back(t2_sph1);
-    sphere1->texture_type = 3;
-    objs.push_back(sphere1);
+    AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(-20, -30, 0), 12, Color(73, 179, 248), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 1);
+    sphere1->AddTexture("wall0.bmp", 1, 1);
+    sphere1->AddTexture("wall0.bmp", 1, 1);
+    sphere1->AddTexture("normal.bmp", 1, 1);
+    sphere1->texture_type = 1;
+    //objs.push_back(sphere1);
   
+    
+    
+    AnyObject* environment = (AnyObject*)new Environment(Point3D(0, -50, 20), 100, Color(255, 255, 0), Vector3D(0, 1, 0), Vector3D(-1, 0, 0), Vector3D(0, 0, 1), 0);
+    environment->AddTexture("360.bmp", 1, 1);
+    environment->AddTexture("360.bmp", 1, 1);
+    environment->texture_type = 1;
+    objs.push_back(environment);
+    
+    
+    
     
 
 //    AnyObject* mesh1 = (AnyObject*)new Mesh("tetrahedron.obj", Point3D(0, -20, 20), 8);
-    AnyObject* mesh1 = (AnyObject*)new Mesh("cube.obj", Point3D(0, -40, 20), 3, 0.5);
-//    AnyObject* mesh1 = (AnyObject*)new Mesh("dodecahandle.obj", Point3D(0, -40, 20), 1);
-    mesh1->AddTexture("star0.bmp", 1, 1);
-    mesh1->AddTexture("star1.bmp", 1, 1);
+    AnyObject* mesh1 = (AnyObject*)new Mesh("cube.obj", Point3D(-20, -50, 0), 5, 1);
+    mesh1->AddTexture("star0.bmp", 0.1, 0.1);
+    mesh1->AddTexture("star1.bmp", 0.1, 0.1);
+    mesh1->AddTexture("normal.bmp");
     mesh1->texture_type = 1;
-
+    objs.push_back(mesh1);
     
-    //objs.push_back(mesh1);
-    
-
+    AnyObject* mesh2 = (AnyObject*)new Mesh("dodecahandle.obj", Point3D(-20, -30, 20), 3, 1);
+    mesh2->AddTexture("star0.bmp", 1, 1);
+    mesh2->AddTexture("star0.bmp", 1, 1);
+    mesh2->texture_type = 1;
+    //objs.push_back(mesh2);
 
   
   sce.objs = objs;
   
   vector<light_src*> light;
-  light_src* light_src1 = new light_src(1, Point3D(100, -30, 100), Vector3D(-1, 1, -1), Vector3D(1, 1, 1));
+  light_src* light_src1 = new light_src(1, Point3D(-100, -30, 100), Vector3D(-1, 1, -1), Vector3D(1, 1, 1));
   light.push_back(light_src1);
 
   
 
-  Shader shd = Shader(light, Color(20, 23, 30), Color(220, 200, 250), Color(240, 240, 240));
+//  Shader shd = Shader(light, Color(20, 23, 30), Color(220, 200, 250), Color(240, 240, 240));
+    Shader shd = Shader(light, Color(0x000000), Color(0xdddddd), Color(0x000000));
   
   setPixels(sce, shd, alias);
   glutInit(&argc, argv);
   glutInitWindowPosition(100, 100);
   glutInitWindowSize(width, height);
   glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
-  glutCreateWindow("Project 5");
+  glutCreateWindow("Project 8");
   init();
   glutReshapeFunc(windowResize);
   glutDisplayFunc(windowDisplay);
