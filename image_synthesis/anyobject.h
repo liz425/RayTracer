@@ -17,8 +17,10 @@
 class AnyObject{
 public:
     Color clr;
+    double IOR = 1; //index of refraction
+    double fresnel = 1; //Fresnel == 1, full reflection;  Fresnel == 0, full refraction
     double ks = 0; //reflection coefficient, 1 means total reflection
-    virtual const tuple<Color, double, Point3D, Vector3D> CalcIntersect(View eye) = 0;
+    virtual const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye) = 0;
     virtual const string GetObjectType() = 0;
     //at least 2 texture maps: first <-> the normal map; second <-> darker map
     vector<Texture*> textures;
@@ -64,20 +66,21 @@ public:
         ks = ks_in;
     }
     
-    const tuple<Color, double, Point3D, Vector3D> CalcIntersect(View eye){
+    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye){
         //check if eye position behind the plane
+        int outside = 1;
         if (DotProduct(this->ni, eye.pe - this->pi) <= 0) {
             //cout << "Wrong eye position: Behind the plane!" << endl;
-            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(ni));
+            outside = -1;
         }
         //When no intersection, return t = -1
         if (DotProduct(this->ni, eye.npe) >= 0) {
-            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(ni));
+            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(ni) * outside, outside);
         }
         double t = -DotProduct(this->ni, eye.pe - this->pi)/DotProduct(this->ni, eye.npe);
         //ph: hit point
         Point3D ph = eye.pe + eye.npe * t;
-        return make_tuple(this->clr, t, ph, ni);
+        return make_tuple(this->clr, t, ph, ni * outside, outside);
     }
     
     const string GetObjectType(){
@@ -119,24 +122,27 @@ public:
     }
     
     
-    const tuple<Color, double, Point3D, Vector3D> CalcIntersect(View eye){
+    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye){
         ////cout << eye.npe.length() << endl;
-        //Check if eye position inside the sphere, return -1 when true
-        if (DotProduct(eye.pe - this->pCenter, eye.pe - this->pCenter) - pow(this->radius, 2) <= 0){
+        //Check if eye position inside the sphere, set inside 1 when true
+        int outside = 1;
+        //When judge for in/out side, use -0.00001 instead of 0 for threshold, considering the accuracy of float computing
+        //So when calculating reflection point ph, length(ph - pCenter) is sometimes a little bit smaller than radius.
+        if (DotProduct(eye.pe - this->pCenter, eye.pe - this->pCenter) - pow(this->radius, 2) <= -0.00001){
             //cout << "Wrong eye position: Inside of the sphere!" << endl;
-            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Vector3D(0, 0, 0));
+            outside = -1;
         }
         
         double B = DotProduct(eye.npe, (this->pCenter - eye.pe));
         double C = DotProduct(eye.pe - this->pCenter, eye.pe - this->pCenter) - pow(this->radius, 2);
         double delta = pow(B, 2) - C;
         if (delta < 0) {   //when no intesection, return t = -1
-            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Vector3D(0, 0, 0));
+            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Vector3D(0, 0, 0) * outside, outside);
         }else{
-            double t = B - sqrt(delta);
+            double t = B - outside * sqrt(delta);
             //ph is the hit point
             Point3D ph = eye.pe + eye.npe * t;
-            return make_tuple(this->clr, t, ph, Normalize(ph - pCenter));
+            return make_tuple(this->clr, t, ph, Normalize(ph - pCenter) * outside, outside);
         }
     }
     
@@ -149,6 +155,7 @@ public:
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
+
 class Environment : public Sphere{
     //(p - pi) dot_product (p - pi) - r^2 = 0
 public:
@@ -177,26 +184,27 @@ public:
     }
     
     
-    const tuple<Color, double, Point3D, Vector3D> CalcIntersect(View eye){
+    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye){
         ////cout << eye.npe.length() << endl;
         //Check if eye position inside the sphere, return -1 when true
-        if (DotProduct(eye.pe - this->pCenter, eye.pe - this->pCenter) - pow(this->radius, 2) >= 0){
+        int inside = 1;
+        if (DotProduct(eye.pe - this->pCenter, eye.pe - this->pCenter) - pow(this->radius, 2) >= 0.00001){
             //cout << "Wrong eye position: Outside of the Environment!" << endl;
-            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Vector3D(0, 0, 0));
+            inside = -1;
         }
         
         double B = DotProduct(eye.npe, (this->pCenter - eye.pe));
         double C = DotProduct(eye.pe - this->pCenter, eye.pe - this->pCenter) - pow(this->radius, 2);
         double delta = pow(B, 2) - C;
         if (delta < 0) {   //when no intesection, return t = -1
-            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Vector3D(0, 0, 0));
+            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Vector3D(0, 0, 0) * inside, inside);
         }else{
             double t = B + sqrt(delta);
             //ph is the hit point
             Point3D ph = eye.pe + eye.npe * t;
 //            cout << "Hit environment!!!!!!!\n" << endl;
 //            cout << clr.r << clr.g << clr.b << endl;
-            return make_tuple(this->clr, t, ph, Normalize(pCenter - ph));
+            return make_tuple(this->clr, t, ph, Normalize(pCenter - ph) * inside, inside);
         }
     }
     
@@ -261,15 +269,16 @@ public:
         ks = ks_in;
     }
     
-    const tuple<Color, double, Point3D, Vector3D> CalcIntersect(View eye){
+    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye){
         //check inside/outside of the object
+        int outside = 1;
         double Fp = aCoor[3] / sCoor[2] * DotProduct(nCoor[2], (eye.pe - pCenter)) + aCoor[4];
         for (int i = 0; i < 3; i++) {
             Fp += aCoor[i] * pow(DotProduct(nCoor[i], eye.pe - pCenter) / sCoor[i], 2);
         }
         if (Fp < 0) {
             ////cout << "Wrong eye position: Inside of the Quadric!" << endl;
-            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Vector3D(0, 0, 0));
+            outside = -1;
         }
         
         //finish checking, then calculate intersection: t
@@ -294,9 +303,9 @@ public:
                     nh = nh + nCoor[i] * (2 * aCoor[i] /pow(sCoor[i], 2) * DotProduct(nCoor[i], ph - pCenter));
                 }
                 nh = Normalize(nh);
-                return make_tuple(clr, t, ph, nh);
+                return make_tuple(clr, t, ph, nh * outside, outside);
             }else{
-                return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Vector3D(0, 0, 0));
+                return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Vector3D(0, 0, 0), outside);
             }
         }else{
             double delta = B * B - 4 * A * C;
@@ -313,9 +322,9 @@ public:
                 }
                 nh = Normalize(nh);
                 
-                return make_tuple(clr, t, ph, nh);
+                return make_tuple(clr, t, ph, nh * outside, outside);
             }else{
-                return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Vector3D(0, 0, 0));
+                return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Vector3D(0, 0, 0), outside);
             }
         }
         //end of calculation
@@ -449,16 +458,18 @@ public:
         UV_p2 = t2;
     }
     
-    const tuple<Color, double, Point3D, Vector3D> CalcIntersect(View eye){
+    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye){
         //check if eye position behind the plane
+        //outside here does not mean ph located in triangle area, actually it means eye in front or behind plane
+        int outside = 1;
         if (DotProduct(this->normal, eye.pe - this->p_center) <= 0) {
             //cout << "Wrong eye position: Behind the plane!" << endl;
-            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(normal));
+            outside = -1;
         }
         
         //When no intersection with the plane, return t = -1
         if (DotProduct(this->normal, eye.npe) >= 0) {
-            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(normal));
+            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(normal) * outside, outside);
         }
         
         //Has intersection with the plane, then judge whether inside the triangle
@@ -478,10 +489,10 @@ public:
         
         if(u >= 0 && v >= 0 && (u + v) <= 1){
             //Inside triangle
-            return make_tuple(this->clr, t, ph, normal);
+            return make_tuple(this->clr, t, ph, normal * outside, outside);
         }else{
             //When outside the triangle, return t = -1
-            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(normal));
+            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(normal) * outside, outside);
         }
     }
     
@@ -607,11 +618,11 @@ public:
         
     }
     
-    const tuple<Color, double, Point3D, Vector3D> CalcIntersect(View eye){
+    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye){
         double t_min = FLT_MAX;
-        tuple<Color, double, Point3D, Vector3D> intsec_min;
+        tuple<Color, double, Point3D, Vector3D, int> intsec_min;
         for(Triangle tri : triangles){
-            tuple<Color, double, Point3D, Vector3D> intsec = tri.CalcIntersect(eye);
+            tuple<Color, double, Point3D, Vector3D, int> intsec = tri.CalcIntersect(eye);
             double t_tmp = get<1>(intsec);
             if (t_tmp >= 0 && t_tmp < t_min) {
                 t_min = t_tmp;
@@ -623,7 +634,7 @@ public:
         if(t_min > 0 && t_min != FLT_MAX){
             return intsec_min;
         }else{
-            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(Vector3D(0, 0, 0)));
+            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(Vector3D(0, 0, 0)), 1);
         }
     }
     

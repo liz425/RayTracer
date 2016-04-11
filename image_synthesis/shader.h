@@ -305,7 +305,7 @@ public:
             double t_min = FLT_MAX;
             int obstacle_cnt = 0;
             for(int i = 0; i < obj_number; i++){
-                tuple<Color, double, Point3D, Vector3D> intsec = objs[i]->CalcIntersect(View(ph, nlh));
+                tuple<Color, double, Point3D, Vector3D, int> intsec = objs[i]->CalcIntersect(View(ph, nlh));
                 double t_tmp = get<1>(intsec);
                 if (t_tmp >= 0 && t_tmp < t_min) {
                     t_min = t_tmp;

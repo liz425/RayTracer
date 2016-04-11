@@ -22,7 +22,7 @@
 #define PI 3.14159265
 #endif
 
-#define REFLECTION_TIMES_THRES 5
+#define REFLECTION_TIMES_THRES 0
 #define REFLECTION_KTOTAL_THRES 0.05
 
 
@@ -60,7 +60,7 @@ Color CalcSubPixel(View eye, vector<AnyObject*>& objs, Shader shd, int reflectio
     Vector2D UV = Vector2D(0, 0);
     
     for(int i = 0; i < obj_number; i++){
-        tuple<Color, double, Point3D, Vector3D> intsec = objs[i]->CalcIntersect(eye);
+        tuple<Color, double, Point3D, Vector3D, int> intsec = objs[i]->CalcIntersect(eye);
         double t_tmp = get<1>(intsec);
         if (t_tmp >= 0 && t_tmp < t_min) {
             t_min = t_tmp;
@@ -157,12 +157,12 @@ public:
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
 View CalcView(Scene sce, double x_per, double y_per){
-  Point3D pp = sce.p00 + sce.n0 * (x_per * sce.s_x) + sce.n1 * (y_per * sce.s_y);
-  Vector3D v_pe = pp - sce.p_eye;
-  Vector3D npe = Normalize(v_pe);
-  ////cout << npe.x << " " << npe.y << " " << npe.z << endl;
-  ////cout << npe.length() << endl;
-  return View(sce.p_eye, npe);
+    Point3D pp = sce.p00 + sce.n0 * (x_per * sce.s_x) + sce.n1 * (y_per * sce.s_y);
+    Vector3D v_pe = pp - sce.p_eye;
+    Vector3D npe = Normalize(v_pe);
+    ////cout << npe.x << " " << npe.y << " " << npe.z << endl;
+    ////cout << npe.length() << endl;
+    return View(sce.p_eye, npe);
 }
 
 
@@ -282,27 +282,27 @@ int main(int argc, char *argv[])
     plane1->AddTexture("fall.bmp", 200, 200);
     plane1->AddTexture("fall.bmp", 200, 200);
     plane1->texture_type = 1;
-//    objs.push_back(plane1);
+    //objs.push_back(plane1);
   
     
-    AnyObject* plane2 = (AnyObject*)new Plane(Point3D(0, 0, -20), Vector3D(0, 0, 1), Vector3D(1, 0, 0), Color(157, 139, 187));
+    AnyObject* plane2 = (AnyObject*)new Plane(Point3D(0, 0, -20), Vector3D(0, 0, 1), Vector3D(1, 0, 0), Color(157, 139, 187), 1);
     plane2->AddTexture("texture0.bmp", 50, 50);
     plane2->AddTexture("texture1.bmp", 50, 50);
     plane2->texture_type = 1;
-//    objs.push_back(plane2);
+    //objs.push_back(plane2);
     
 
   
     AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(-20, -30, 0), 12, Color(73, 179, 248), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 1);
     sphere1->AddTexture("wall0.bmp", 1, 1);
     sphere1->AddTexture("wall0.bmp", 1, 1);
-    sphere1->AddTexture("normal.bmp", 1, 1);
+    //sphere1->AddTexture("normal.bmp", 1, 1);
     sphere1->texture_type = 1;
-    //objs.push_back(sphere1);
+    objs.push_back(sphere1);
   
     
     
-    AnyObject* environment = (AnyObject*)new Environment(Point3D(0, -50, 20), 100, Color(255, 255, 0), Vector3D(0, 1, 0), Vector3D(-1, 0, 0), Vector3D(0, 0, 1), 0);
+    AnyObject* environment = (AnyObject*)new Environment(Point3D(0, -50, 20), 1000, Color(255, 255, 0), Vector3D(0, 1, 0), Vector3D(-1, 0, 0), Vector3D(0, 0, 1), 0);
     environment->AddTexture("360.bmp", 1, 1);
     environment->AddTexture("360.bmp", 1, 1);
     environment->texture_type = 1;
@@ -316,7 +316,7 @@ int main(int argc, char *argv[])
     AnyObject* mesh1 = (AnyObject*)new Mesh("cube.obj", Point3D(-20, -50, 0), 5, 1);
     mesh1->AddTexture("star0.bmp", 0.1, 0.1);
     mesh1->AddTexture("star1.bmp", 0.1, 0.1);
-    mesh1->AddTexture("normal.bmp");
+    //mesh1->AddTexture("normal.bmp");
     mesh1->texture_type = 1;
     objs.push_back(mesh1);
     
