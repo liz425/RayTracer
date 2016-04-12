@@ -33,24 +33,12 @@ unsigned char *pixmap;
 
 
 
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////
-Color CalcSubPixel(View eye, vector<AnyObject*>& objs, Shader shd, int reflection_times, double reflection_ktotal){
+Color CalcSubPixel(View eye, vector<AnyObject*>& objs, Shader shd, int reflection_times, double reflection_ktotal, int outside, int object_index = -1){
     //for all objects, find the closest object
     int obj_number = (int)objs.size();
-    int object_index = 0;
     double t_min = FLT_MAX;
     Color clr = Color(0, 0, 0);
     Point3D ph = Point3D(0, 0, 0);
@@ -59,21 +47,35 @@ Color CalcSubPixel(View eye, vector<AnyObject*>& objs, Shader shd, int reflectio
     bool no_border = true;
     Vector2D UV = Vector2D(0, 0);
     
-    for(int i = 0; i < obj_number; i++){
-        tuple<Color, double, Point3D, Vector3D, int> intsec = objs[i]->CalcIntersect(eye);
-        double t_tmp = get<1>(intsec);
-        if (t_tmp >= 0 && t_tmp < t_min) {
-            t_min = t_tmp;
-            object_index = i;
-            cm0 = get<0>(intsec);
-            ph = get<2>(intsec);
-            nh = get<3>(intsec);
-            no_border = (objs[i]->GetObjectType() == "Plane" || objs[i]->GetObjectType() == "Mesh");
-            if(objs[i]->GetObjectType() == "Mesh"){
-                UV = ((Mesh*)objs[i])->GetUV();
+    if(outside <= -1 && object_index >= 0){
+        //cout << object_index << " " << outside << endl;
+        tuple<Color, double, Point3D, Vector3D, int> intsec = objs[object_index]->CalcIntersect(eye, outside);
+        t_min = get<1>(intsec);
+        cm0 = get<0>(intsec);
+        ph = get<2>(intsec);
+        nh = get<3>(intsec);
+        no_border = (objs[object_index]->GetObjectType() == "Plane" || objs[object_index]->GetObjectType() == "Mesh");
+        if(objs[object_index]->GetObjectType() == "Mesh"){
+            UV = ((Mesh*)objs[object_index])->GetUV();
+        }
+    }else{
+        for(int i = 0; i < obj_number; i++){
+            tuple<Color, double, Point3D, Vector3D, int> intsec = objs[i]->CalcIntersect(eye);
+            double t_tmp = get<1>(intsec);
+            if (t_tmp >= 0 && t_tmp < t_min) {
+                t_min = t_tmp;
+                object_index = i;
+                cm0 = get<0>(intsec);
+                ph = get<2>(intsec);
+                nh = get<3>(intsec);
+                no_border = (objs[i]->GetObjectType() == "Plane" || objs[i]->GetObjectType() == "Mesh");
+                if(objs[i]->GetObjectType() == "Mesh"){
+                    UV = ((Mesh*)objs[i])->GetUV();
+                }
             }
         }
     }
+    
     ////cout << t_min << endl;
     if(t_min != FLT_MAX){
         //If we using normal map, then normal vector 'nh' may change due to normal map
@@ -84,19 +86,65 @@ Color CalcSubPixel(View eye, vector<AnyObject*>& objs, Shader shd, int reflectio
     //calculate reflection
     double ks = objs[object_index]->ks;
     
-//    if(objs[object_index]->GetObjectType() == "Sphere"){
-//        cout << ks << endl;
-//    }
     
     reflection_ktotal *= ks;
-    reflection_times++;
-    if(reflection_times <= REFLECTION_TIMES_THRES && reflection_ktotal >= REFLECTION_KTOTAL_THRES){
+    if(outside >= 1){
+        reflection_times++;
+    }
+    Color clr_reflection;
+    Color clr_refraction;
+    if(outside >= 1 && reflection_times <= REFLECTION_TIMES_THRES && reflection_ktotal >= REFLECTION_KTOTAL_THRES){
         Vector3D reflect_npe = eye.npe - nh * 2 * DotProduct(nh, eye.npe);
         View reflect_view = View(ph, reflect_npe);
-        return clr * (1 - ks) + CalcSubPixel(reflect_view, objs, shd, reflection_times, reflection_ktotal) * ks;
+        clr_reflection = clr * (1 - ks) + CalcSubPixel(reflect_view, objs, shd, reflection_times, reflection_ktotal, 1) * ks;
     }else{
-        return clr;
+        clr_reflection = clr;
     }
+    
+    //claculate refraction
+    
+    double fresnel = objs[object_index]->fresnel;
+    if(fresnel < 1){
+        if(outside >= 1){
+            Vector3D V = eye.npe * (-1);
+            double c = DotProduct(nh, V);
+            double IOR = 1 / objs[object_index]->IOR; //relative n = n1/n2, n1 is IOR of air, = 1
+//            double IOR = 1 / (1.1 + clr.r / 2000.0);
+            Vector3D T = V * (-IOR) + nh * (IOR * c - sqrt(pow(IOR * c, 2) - IOR * IOR + 1));
+            T = T.normalize();
+            View refract_view = View(ph, T);
+            clr_refraction = CalcSubPixel(refract_view, objs, shd, reflection_times, reflection_ktotal, -1, object_index);
+            clr = clr_reflection * fresnel + clr_refraction * (1 - fresnel);
+        }else{
+            Vector3D V = eye.npe * (-1);
+            double c = DotProduct(nh, V);
+            double IOR = objs[object_index]->IOR;
+//            double IOR = 1.1 + clr.r / 2000.0;
+            double delta = (pow(IOR * c, 2) - IOR * IOR + 1);
+            if(delta > 0){
+                Vector3D T = V * (-IOR) + nh * (IOR * c - sqrt(delta));
+                T = T.normalize();
+                View refract_view = View(ph, T);
+                clr_refraction = CalcSubPixel(refract_view, objs, shd, reflection_times, reflection_ktotal, 1, object_index);
+            }else{
+                //full reflection
+                Vector3D reflect_npe;
+                reflect_npe = eye.npe - nh * 2 * DotProduct(nh, eye.npe);
+                View reflect_view = View(ph, reflect_npe);
+                if(outside-- <= -5){
+                    outside = 1;
+                }
+                //full reflection
+                clr_refraction = CalcSubPixel(reflect_view, objs, shd, reflection_times, reflection_ktotal, outside, object_index);
+            }
+            clr = clr_refraction;
+        }
+    }else{
+        clr = clr_reflection;
+    }
+     
+    
+    return clr;
 }
 
 
@@ -182,7 +230,7 @@ Color CalcPixel(Scene sce, Shader shd, int x, int y, int alias){
       double y_per = pointY / height;
       
       View eye = CalcView(sce, x_per, y_per);
-      Color clr_sub = CalcSubPixel(eye, sce.objs, shd, 0, 1.0);
+      Color clr_sub = CalcSubPixel(eye, sce.objs, shd, 0, 1.0, 1);
       
       red += clr_sub.r;
       green += clr_sub.g;
@@ -199,7 +247,7 @@ Color CalcPixel(Scene sce, Shader shd, int x, int y, int alias){
     double x_per = (double)x / width;
     double y_per = (double)y / height;
     View eye = CalcView(sce, x_per, y_per);
-    clr = CalcSubPixel(eye, sce.objs, shd, 0, 1.0);
+    clr = CalcSubPixel(eye, sce.objs, shd, 0, 1.0, 1);
   }
   return clr;
 }
@@ -257,8 +305,8 @@ static void init(void)
 
 int main(int argc, char *argv[])
 {
-    width = 600;
-    height = 600;
+    width = 800;
+    height = 800;
     int alias = 3;
     Scene sce;
     //  sce.p_eye = Point3D(0, -50, 0);
@@ -293,10 +341,12 @@ int main(int argc, char *argv[])
     
 
   
-    AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(-20, -30, 0), 12, Color(73, 179, 248), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 1);
-    sphere1->AddTexture("wall0.bmp", 1, 1);
-    sphere1->AddTexture("wall0.bmp", 1, 1);
-    //sphere1->AddTexture("normal.bmp", 1, 1);
+    AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(-30, -30, 20), 12, Color(73, 179, 248), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 0);
+    sphere1->fresnel = 0;
+    sphere1->IOR = 1.1;
+    sphere1->AddTexture("04.bmp", 0.5, 0.5);
+    sphere1->AddTexture("04.bmp", 0.5, 0.5);
+    sphere1->AddTexture("normal.bmp", 1, 1);
     sphere1->texture_type = 1;
     objs.push_back(sphere1);
   
@@ -313,12 +363,14 @@ int main(int argc, char *argv[])
     
 
 //    AnyObject* mesh1 = (AnyObject*)new Mesh("tetrahedron.obj", Point3D(0, -20, 20), 8);
-    AnyObject* mesh1 = (AnyObject*)new Mesh("cube.obj", Point3D(-20, -50, 0), 5, 1);
+    AnyObject* mesh1 = (AnyObject*)new Mesh("cube.obj", Point3D(-20, -90, 20), 5, 1);
+    mesh1->fresnel = 0;
+    mesh1->IOR = 1.1;
     mesh1->AddTexture("star0.bmp", 0.1, 0.1);
     mesh1->AddTexture("star1.bmp", 0.1, 0.1);
-    //mesh1->AddTexture("normal.bmp");
+    mesh1->AddTexture("normal.bmp");
     mesh1->texture_type = 1;
-    objs.push_back(mesh1);
+    //objs.push_back(mesh1);
     
     AnyObject* mesh2 = (AnyObject*)new Mesh("dodecahandle.obj", Point3D(-20, -30, 20), 3, 1);
     mesh2->AddTexture("star0.bmp", 1, 1);

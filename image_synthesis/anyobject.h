@@ -20,7 +20,7 @@ public:
     double IOR = 1; //index of refraction
     double fresnel = 1; //Fresnel == 1, full reflection;  Fresnel == 0, full refraction
     double ks = 0; //reflection coefficient, 1 means total reflection
-    virtual const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye) = 0;
+    virtual const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye, int outside = 0) = 0;
     virtual const string GetObjectType() = 0;
     //at least 2 texture maps: first <-> the normal map; second <-> darker map
     vector<Texture*> textures;
@@ -66,12 +66,15 @@ public:
         ks = ks_in;
     }
     
-    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye){
+    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye, int outside = 0){
         //check if eye position behind the plane
-        int outside = 1;
-        if (DotProduct(this->ni, eye.pe - this->pi) <= 0) {
-            //cout << "Wrong eye position: Behind the plane!" << endl;
-            outside = -1;
+        if (outside == 0){
+            if(DotProduct(this->ni, eye.pe - this->pi) <= 0) {
+                //cout << "Wrong eye position: Behind the plane!" << endl;
+                outside = -1;
+            }else{
+                outside = 1;
+            }
         }
         //When no intersection, return t = -1
         if (DotProduct(this->ni, eye.npe) >= 0) {
@@ -122,15 +125,23 @@ public:
     }
     
     
-    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye){
+    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye, int outside = 0){
         ////cout << eye.npe.length() << endl;
         //Check if eye position inside the sphere, set inside 1 when true
-        int outside = 1;
+        
         //When judge for in/out side, use -0.00001 instead of 0 for threshold, considering the accuracy of float computing
         //So when calculating reflection point ph, length(ph - pCenter) is sometimes a little bit smaller than radius.
-        if (DotProduct(eye.pe - this->pCenter, eye.pe - this->pCenter) - pow(this->radius, 2) <= -0.00001){
-            //cout << "Wrong eye position: Inside of the sphere!" << endl;
-            outside = -1;
+        //if the input parameter outside == 0, mean don't know whether inside or outside, then calculate
+        //if the input parameter outside == 1/-1, then just keep it.
+        if (outside == 0){
+            if (DotProduct(eye.pe - this->pCenter, eye.pe - this->pCenter) - pow(this->radius, 2) <= -0.00001){
+                //cout << "Wrong eye position: Inside of the sphere!" << endl;
+                outside = -1;
+            }else{
+                outside = 1;
+            }
+        }else{
+            outside = (outside > 0)? 1 : -1;
         }
         
         double B = DotProduct(eye.npe, (this->pCenter - eye.pe));
@@ -145,6 +156,7 @@ public:
             return make_tuple(this->clr, t, ph, Normalize(ph - pCenter) * outside, outside);
         }
     }
+    
     
     const string GetObjectType(){
         return "Sphere";
@@ -184,10 +196,9 @@ public:
     }
     
     
-    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye){
+    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye, int inside = 1){
         ////cout << eye.npe.length() << endl;
         //Check if eye position inside the sphere, return -1 when true
-        int inside = 1;
         if (DotProduct(eye.pe - this->pCenter, eye.pe - this->pCenter) - pow(this->radius, 2) >= 0.00001){
             //cout << "Wrong eye position: Outside of the Environment!" << endl;
             inside = -1;
@@ -269,16 +280,19 @@ public:
         ks = ks_in;
     }
     
-    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye){
+    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye, int outside = 0){
         //check inside/outside of the object
-        int outside = 1;
         double Fp = aCoor[3] / sCoor[2] * DotProduct(nCoor[2], (eye.pe - pCenter)) + aCoor[4];
         for (int i = 0; i < 3; i++) {
             Fp += aCoor[i] * pow(DotProduct(nCoor[i], eye.pe - pCenter) / sCoor[i], 2);
         }
-        if (Fp < 0) {
-            ////cout << "Wrong eye position: Inside of the Quadric!" << endl;
-            outside = -1;
+        if(outside == 0){
+            if (Fp < 0) {
+                ////cout << "Wrong eye position: Inside of the Quadric!" << endl;
+                outside = -1;
+            }else{
+                outside = 1;
+            }
         }
         
         //finish checking, then calculate intersection: t
@@ -458,13 +472,18 @@ public:
         UV_p2 = t2;
     }
     
-    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye){
+    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye, int outside = 0){
         //check if eye position behind the plane
         //outside here does not mean ph located in triangle area, actually it means eye in front or behind plane
-        int outside = 1;
-        if (DotProduct(this->normal, eye.pe - this->p_center) <= 0) {
-            //cout << "Wrong eye position: Behind the plane!" << endl;
-            outside = -1;
+        if(outside == 0){
+            if (DotProduct(this->normal, eye.pe - this->p_center) <= 0) {
+                //cout << "Wrong eye position: Behind the plane!" << endl;
+                outside = -1;
+            }else{
+                outside = 1;
+            }
+        }else{
+            outside = (outside > 0)? 1 : -1;
         }
         
         //When no intersection with the plane, return t = -1
@@ -474,6 +493,12 @@ public:
         
         //Has intersection with the plane, then judge whether inside the triangle
         double t = -DotProduct(this->normal, eye.pe - this->p_center)/DotProduct(this->normal, eye.npe);
+        
+        //Again, considering accuracy of 'double', when eye on the triangle and look inside, t may be a smaller positive value
+        //But what we want is another intersection with other triangle which has large positive value.
+        if((outside < 0 && t > 0) || (t < 0)){
+            return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(normal) * outside, outside);
+        }
         
         //ph: hit point
         Point3D ph = eye.pe + eye.npe * t;
@@ -618,11 +643,11 @@ public:
         
     }
     
-    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye){
+    const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye, int outside = 0){
         double t_min = FLT_MAX;
         tuple<Color, double, Point3D, Vector3D, int> intsec_min;
         for(Triangle tri : triangles){
-            tuple<Color, double, Point3D, Vector3D, int> intsec = tri.CalcIntersect(eye);
+            tuple<Color, double, Point3D, Vector3D, int> intsec = tri.CalcIntersect(eye, outside);
             double t_tmp = get<1>(intsec);
             if (t_tmp >= 0 && t_tmp < t_min) {
                 t_min = t_tmp;
@@ -634,6 +659,8 @@ public:
         if(t_min > 0 && t_min != FLT_MAX){
             return intsec_min;
         }else{
+//            cout << t_min << endl;
+//            cout << "ooops" << endl;
             return make_tuple(Color(0, 0, 0), -1, Point3D(0, 0, 0), Normalize(Vector3D(0, 0, 0)), 1);
         }
     }

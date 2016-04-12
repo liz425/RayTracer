@@ -16,7 +16,7 @@
 #define PI 3.14159265
 #endif
 
-#define normal_map_scale  0.1
+#define normal_map_scale  0.03
 //specular type, 0 -> soft, 1 -> sharp, 2 -> other shape
 #define SpecularType 0
 //#define _hard_spot_light_
