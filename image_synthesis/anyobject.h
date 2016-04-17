@@ -182,9 +182,9 @@ public:
         clr = clr_in;
         pCenter = pCenter_in;
         radius = radius_in;
-        n0 = n0_in;
-        n1 = n1_in;
-        n2 = n2_in;
+        n0 = n0_in.normalize();
+        n1 = n1_in.normalize();
+        n2 = n2_in.normalize();
         ks = ks_in;
     }
     

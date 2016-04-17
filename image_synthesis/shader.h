@@ -20,7 +20,7 @@
 //specular type, 0 -> soft, 1 -> sharp, 2 -> other shape
 #define SpecularType 0
 //#define _hard_spot_light_
-#define _NORMAL_MAP
+//#define _NORMAL_MAP
 
 class Shader{
     vector<light_src*> light;

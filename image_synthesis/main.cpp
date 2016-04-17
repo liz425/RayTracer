@@ -22,7 +22,7 @@
 #define PI 3.14159265
 #endif
 
-#define REFLECTION_TIMES_THRES 0
+#define REFLECTION_TIMES_THRES 3
 #define REFLECTION_KTOTAL_THRES 0.05
 
 
@@ -341,12 +341,12 @@ int main(int argc, char *argv[])
     
 
   
-    AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(-30, -30, 20), 12, Color(73, 179, 248), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 0);
-    sphere1->fresnel = 0;
+    AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(-30, -30, 20), 12, Color(73, 179, 248), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 1);
+    sphere1->fresnel = 1;
     sphere1->IOR = 1.1;
-    sphere1->AddTexture("04.bmp", 0.5, 0.5);
-    sphere1->AddTexture("04.bmp", 0.5, 0.5);
-    sphere1->AddTexture("normal.bmp", 1, 1);
+    sphere1->AddTexture("wall0.bmp", 0.5, 0.5);
+    sphere1->AddTexture("wall0.bmp", 0.5, 0.5);
+    //sphere1->AddTexture("normal.bmp", 1, 1);
     sphere1->texture_type = 1;
     objs.push_back(sphere1);
   
