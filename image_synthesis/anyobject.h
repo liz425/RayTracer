@@ -25,7 +25,7 @@ public:
     //at least 2 texture maps: first <-> the normal map; second <-> darker map
     vector<Texture*> textures;
     //type: 0 No texture mapping    type: 1  texture mapping     type: 2 solid texture(image projecting)
-    //type: 3 3D Julia Set
+    //type: 3 3D Julia Set or 3D function
     int texture_type = 0;
     //    virtual void SetN(Vector3D n0, Vector3D n1, Vector3D n2) = 0;
     //    virtual void SetS(float s0, float s1, float s2) = 0;
