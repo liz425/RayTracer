@@ -36,7 +36,7 @@ unsigned char *pixmap;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-Color CalcSubPixel(View eye, vector<AnyObject*>& objs, Shader shd, int reflection_times, double reflection_ktotal, int outside, int object_index = -1){
+Color CalcSubPixel(View eye, vector<AnyObject*>& objs, Shader shd, int reflection_times, double reflection_ktotal, int outside, int object_index = 0){
     //for all objects, find the closest object
     int obj_number = (int)objs.size();
     double t_min = FLT_MAX;
@@ -233,7 +233,7 @@ Color CalcPixel(Scene sce, Shader shd, int x, int y, int alias){
           double y_per = pointY / height;
           
           //Lost focus
-          sce.p_eye = sce.p_eye + Vector3D((double)rand() / RAND_MAX - 0.5, (double)rand() / RAND_MAX - 0.5, 0) * 0.5;
+          //sce.p_eye = sce.p_eye + Vector3D((double)rand() / RAND_MAX - 0.5, (double)rand() / RAND_MAX - 0.5, 0) * 0.5;
           View eye = CalcView(sce, x_per, y_per);
           Color clr_sub = CalcSubPixel(eye, sce.objs, shd, 0, 1.0, 1);
           
@@ -331,28 +331,28 @@ int main(int argc, char *argv[])
     pixmap = new unsigned char[width * height * 3];
     vector<AnyObject*> objs;
   
-    AnyObject* plane1 = (AnyObject*)new Plane(Point3D(-80, -10, -80), Vector3D(0, -1, 0), Vector3D(-1, 0, 0), Color(214, 147, 44), 0);
+    AnyObject* plane1 = (AnyObject*)new Plane(Point3D(-80, 100, -80), Vector3D(0, -1, 0), Vector3D(-1, 0, 0), Color(214, 147, 44), 0);
     plane1->AddTexture("fall.bmp", 200, 200);
     plane1->AddTexture("fall.bmp", 200, 200);
-    plane1->texture_type = 1;
-    //objs.push_back(plane1);
+    plane1->texture_type = 0;
+    objs.push_back(plane1);
   
     
-    AnyObject* plane2 = (AnyObject*)new Plane(Point3D(0, 0, -20), Vector3D(0, 0, 1), Vector3D(1, 0, 0), Color(157, 139, 187), 0);
+    AnyObject* plane2 = (AnyObject*)new Plane(Point3D(0, 0, 0), Vector3D(0, 0, 1), Vector3D(1, 0, 0), Color(246,246,246), 0);
     plane2->AddTexture("fall.bmp", 10, 10);
     plane2->AddTexture("fall.bmp", 10, 10);
-    plane2->texture_type = 3;
-    //objs.push_back(plane2);
+    plane2->texture_type = 0;
+    objs.push_back(plane2);
     
 
   
-    AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(20, 20, 20), 10, Color(73, 179, 248), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 1);
+    AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(20, -10, 10), 10, Color(73, 179, 248), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 0);
     sphere1->fresnel = 1;
     sphere1->IOR = 1.1;
     sphere1->AddTexture("wall0.bmp", 0.5, 0.5);
     sphere1->AddTexture("wall0.bmp", 0.5, 0.5);
     //sphere1->AddTexture("normal.bmp", 1, 1);
-    sphere1->texture_type = 3;
+    sphere1->texture_type = 0;
     objs.push_back(sphere1);
   
     
@@ -360,13 +360,13 @@ int main(int argc, char *argv[])
     sphere2->AddTexture("wall0.bmp", 0.5, 0.5);
     sphere2->AddTexture("wall0.bmp", 0.5, 0.5);
     sphere2->texture_type = 3;
-    objs.push_back(sphere2);
+    //objs.push_back(sphere2);
     
     AnyObject* sphere3 = (AnyObject*)new Sphere(Point3D(-20, -20, 20), 10, Color(73, 179, 248), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 1);
     sphere3->AddTexture("wall0.bmp", 0.5, 0.5);
     sphere3->AddTexture("wall0.bmp", 0.5, 0.5);
     sphere3->texture_type = 3;
-    objs.push_back(sphere3);
+    //objs.push_back(sphere3);
     
     
     
@@ -374,7 +374,7 @@ int main(int argc, char *argv[])
     environment->AddTexture("360.bmp", 1, 1);
     environment->AddTexture("360.bmp", 1, 1);
     environment->texture_type = 1;
-    objs.push_back(environment);
+    //objs.push_back(environment);
     
     
     
