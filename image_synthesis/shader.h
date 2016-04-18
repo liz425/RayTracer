@@ -39,7 +39,7 @@ public:
     
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-    Color shading(Color cm0, Color cm1, Point3D ph, Vector3D& nh, View eye, bool no_border, vector<AnyObject*> objs, int object_index, Vector2D UV = Vector2D(0, 0)){
+    Color shading(Color cm0, Color cm1, Point3D ph, Vector3D& nh, View eye, bool no_border, vector<AnyObject*> objs, int object_index, Vector2D UV = Vector2D(0, 0), double m = 0, double n = 0){
         int light_num = (int)light.size();
         bool normal_map_on = false;
         
@@ -88,6 +88,7 @@ public:
                 clr = CalcBorder(clr, ph, nh, eye, nhl);
             }
             clr = CalcShadow(clr, ph, nh, nhl, light_index, objs);
+            //clr = CalcSoftShadow(clr, ph, nh, nhl, light_index, objs, m, n);
             //Since 'Color' class is 'char' typt, never make it larger than 255.
             clr_sum = clr_sum / (light_index + 1.0) * light_index + clr / (light_index + 1.0);
         }
@@ -336,4 +337,60 @@ public:
         return clr;
     }
     
+    
+    
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    Color CalcSoftShadow(Color clr, Point3D ph, Vector3D nh, Vector3D nhl, int i, vector<AnyObject*> objs, double m = 0, double n = 0){
+        double sh = 1;
+        Point3D pl = light[0]->position;
+//        cout << m << endl;
+        pl = pl + light[0]->n0 * light[0]->sx * m + light[0]->n1 * light[0]->sy * n;
+        
+        Vector3D nlh = pl - ph;
+        if (DotProduct(nh, nlh) <= 0) {
+            //in shadow
+            sh = 0.5;
+        }else{
+            int obj_number = (int)objs.size();
+            double t_min = FLT_MAX;
+            int obstacle_cnt = 0;
+            for(int i = 0; i < obj_number; i++){
+                tuple<Color, double, Point3D, Vector3D, int> intsec = objs[i]->CalcIntersect(View(ph, nlh));
+                double t_tmp = get<1>(intsec);
+                if (t_tmp >= 0 && t_tmp < t_min) {
+                    t_min = t_tmp;
+                    obstacle_cnt ++;
+                }
+            }
+            
+            double L = (light[i]->position - ph).length();
+            if(t_min > 0 && t_min < L){
+                sh = t_min / L;
+                ////cout << sh << endl;
+            }
+        }
+        
+        //cout << sh << endl;
+        if (light[i]->type == 2) {
+        #ifdef _hard_spot_light_
+            if (DotProduct(light[i]->direction, nhl) < cos(light[i]->spot_angle / 180 * PI)) {
+                sh = 0.2;
+            }
+        #else
+            sh = sh * pow((DotProduct(light[i]->direction, nhl) + 1) / 2.0, 1);
+        #endif
+        }
+        
+        
+        clr = clr * sh + ambient_color * (1 - sh);
+        return clr;
+    }
+    
+    
+    
+    
+    
 };
+
+

@@ -36,7 +36,7 @@ unsigned char *pixmap;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-Color CalcSubPixel(View eye, vector<AnyObject*>& objs, Shader shd, int reflection_times, double reflection_ktotal, int outside, int object_index = 0){
+Color CalcSubPixel(View eye, vector<AnyObject*>& objs, Shader shd, int reflection_times, double reflection_ktotal, int outside, int object_index = 0, double m = 0, double n = 0){
     //for all objects, find the closest object
     int obj_number = (int)objs.size();
     double t_min = FLT_MAX;
@@ -80,7 +80,7 @@ Color CalcSubPixel(View eye, vector<AnyObject*>& objs, Shader shd, int reflectio
     if(t_min != FLT_MAX){
         //If we using normal map, then normal vector 'nh' may change due to normal map
         //Thus shading function should also update 'nh' by using pass by reference: Vector3D& nh
-        clr = shd.shading(cm0, shd.ambient_color, ph, nh, eye, no_border, objs, object_index, UV);
+        clr = shd.shading(cm0, shd.ambient_color, ph, nh, eye, no_border, objs, object_index, UV, m, n);
     }
     
     //calculate reflection
@@ -224,7 +224,16 @@ Color CalcPixel(Scene sce, Shader shd, int x, int y, int alias){
   double green = 0;
   double blue = 0;
   Color clr;
+    int k0 = (double)rand() / RAND_MAX * 100;
+    int k1 = (double)rand() / RAND_MAX * 100;
+    double r = (double)rand() / RAND_MAX;
   for (int q = 0; q < alias; q++){
+      
+      //motion blur
+      Sphere* sphere = (Sphere*) sce.objs[0];
+      sphere->pCenter = Point3D(0, -20, 10) + Vector3D(q * 3.0 / alias, 0, 0);
+   
+      
       for (int p = 0; p < alias; p++){
           double pointX = ((double)rand() / RAND_MAX + p) / alias + x;
           double pointY = ((double)rand() / RAND_MAX + q) / alias + y;
@@ -234,8 +243,19 @@ Color CalcPixel(Scene sce, Shader shd, int x, int y, int alias){
           
           //Lost focus
           //sce.p_eye = sce.p_eye + Vector3D((double)rand() / RAND_MAX - 0.5, (double)rand() / RAND_MAX - 0.5, 0) * 0.5;
+        
+          
+          
           View eye = CalcView(sce, x_per, y_per);
-          Color clr_sub = CalcSubPixel(eye, sce.objs, shd, 0, 1.0, 1);
+          
+          
+          //parameters for soft shadow
+          double m = ((p + k0) % alias + r) * 1.0 / alias;
+          double n = ((q + k1) % alias + r) * 1.0 / alias;
+          
+          
+          
+          Color clr_sub = CalcSubPixel(eye, sce.objs, shd, 0, 1.0, 1, m, n);
           
           red += clr_sub.r;
           green += clr_sub.g;
@@ -310,9 +330,11 @@ static void init(void)
 
 int main(int argc, char *argv[])
 {
+
+    
     width = 800;
     height = 800;
-    int alias = 3;
+    int alias = 5;
     Scene sce;
     //  sce.p_eye = Point3D(0, -50, 0);
     //  sce.v_view = Vector3D(0, 1, 0);
@@ -335,18 +357,18 @@ int main(int argc, char *argv[])
     plane1->AddTexture("fall.bmp", 200, 200);
     plane1->AddTexture("fall.bmp", 200, 200);
     plane1->texture_type = 0;
-    objs.push_back(plane1);
+    //objs.push_back(plane1);
   
     
     AnyObject* plane2 = (AnyObject*)new Plane(Point3D(0, 0, 0), Vector3D(0, 0, 1), Vector3D(1, 0, 0), Color(246,246,246), 0);
     plane2->AddTexture("fall.bmp", 10, 10);
     plane2->AddTexture("fall.bmp", 10, 10);
     plane2->texture_type = 0;
-    objs.push_back(plane2);
+    //objs.push_back(plane2);
     
 
   
-    AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(20, -10, 10), 10, Color(73, 179, 248), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 0);
+    AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(0, -20, 10), 10, Color(73, 179, 248), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 1);
     sphere1->fresnel = 1;
     sphere1->IOR = 1.1;
     sphere1->AddTexture("wall0.bmp", 0.5, 0.5);
@@ -374,7 +396,7 @@ int main(int argc, char *argv[])
     environment->AddTexture("360.bmp", 1, 1);
     environment->AddTexture("360.bmp", 1, 1);
     environment->texture_type = 1;
-    //objs.push_back(environment);
+    objs.push_back(environment);
     
     
     
@@ -397,11 +419,12 @@ int main(int argc, char *argv[])
     //objs.push_back(mesh2);
 
   
-  sce.objs = objs;
-  
-  vector<light_src*> light;
-  light_src* light_src1 = new light_src(0, Point3D(-100, -30, 100), Vector3D(-1, 1, -1), Vector3D(1, 1, 1));
-  light.push_back(light_src1);
+    sce.objs = objs;
+
+    vector<light_src*> light;
+    light_src* light_src1 = new light_src(0, Point3D(-100, -30, 100), Vector3D(-1, 1, -1), Vector3D(1, 1, 1));
+    light_src* light_src2 = new light_src(3, Point3D(30, -30, 50), Vector3D(0, 0, -1), Vector3D(1, 1, 1), Vector3D(1,0,0), Vector3D(0,1,0), Vector3D(0,0,-1), 30, 30);
+    light.push_back(light_src2);
 
   
 
