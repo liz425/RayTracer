@@ -6,6 +6,8 @@
 //  Copyright © 2016 zl. All rights reserved.
 
 
+#include <stdio.h>
+#include <unistd.h>
 #include <iostream>
 #include <GLUT/GLUT.h>
 #include <cmath>
@@ -230,8 +232,8 @@ Color CalcPixel(Scene sce, Shader shd, int x, int y, int alias){
   for (int q = 0; q < alias; q++){
       
       //motion blur
-      Sphere* sphere = (Sphere*) sce.objs[0];
-      sphere->pCenter = Point3D(0, -20, 10) + Vector3D(q * 3.0 / alias, 0, 0);
+      //Sphere* sphere = (Sphere*) sce.objs[0];
+      //sphere->pCenter = Point3D(0, -20, 10) + Vector3D(q * 3.0 / alias, 0, 0);
    
       
       for (int p = 0; p < alias; p++){
@@ -280,7 +282,7 @@ Color CalcPixel(Scene sce, Shader shd, int x, int y, int alias){
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-void setPixels(Scene sce, Shader shd, int alias){
+void setPixels(Scene sce, Shader shd, int alias, int index){
     Color clr;
     for (int y = 0; y < height; y++){
         for (int x = 0; x < width; x++){
@@ -291,8 +293,8 @@ void setPixels(Scene sce, Shader shd, int alias){
             pixmap[i]   = clr.b;
         }
         
-        if(y % (height / 100) == 0){
-            cout << (y * 100 / height) << "%\n" << endl;
+        if(y % (height / 10) == 0){
+            cout << "Pic " << index << ": " << (y * 100 / height) << "%\n" << endl;
         }
     }
 }
@@ -327,14 +329,80 @@ static void init(void)
 }
 
 
+// The SaveImage function came from Adam Arron
+void SaveImage(const char *file, int width, int height, int dpi, unsigned char *pixmap) {
+    FILE *f;
+    int totalPixels = width * height;
+    int stuff = 4 * totalPixels;
+    
+    int fileSize = 54 + stuff;
+    
+    float factor = 39.375;
+    int m = static_cast<int>(factor);
+    
+    int ppm = dpi * m;
+    unsigned char bmpfileheader[14] = { 'B', 'M',  0, 0, 0, 0,  0, 0, 0, 0,  54, 0, 0, 0 };
+    unsigned char bmpinfoheader[40] = { 40, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1, 0, 24, 0 };
+    
+    bmpfileheader[2] = (unsigned char)(fileSize);
+    bmpfileheader[3] = (unsigned char)(fileSize>>8);
+    bmpfileheader[4] = (unsigned char)(fileSize>>16);
+    bmpfileheader[5] = (unsigned char)(fileSize>>24);
+    
+    bmpinfoheader[4] = (unsigned char)(width);
+    bmpinfoheader[5] = (unsigned char)(width>>8);
+    bmpinfoheader[6] = (unsigned char)(width>>16);
+    bmpinfoheader[7] = (unsigned char)(width>>24);
+    
+    bmpinfoheader[8] = (unsigned char)(height);
+    bmpinfoheader[9] = (unsigned char)(height >> 8);
+    bmpinfoheader[10] = (unsigned char)(height >> 16);
+    bmpinfoheader[11] = (unsigned char)(height >> 24);
+    
+    bmpinfoheader[21] = (unsigned char)(stuff);
+    bmpinfoheader[22] = (unsigned char)(stuff >> 8);
+    bmpinfoheader[23] = (unsigned char)(stuff >> 16);
+    bmpinfoheader[24] = (unsigned char)(stuff >> 24);
+    
+    bmpinfoheader[25] = (unsigned char)(ppm);
+    bmpinfoheader[26] = (unsigned char)(ppm >> 8);
+    bmpinfoheader[27] = (unsigned char)(ppm >> 16);
+    bmpinfoheader[28] = (unsigned char)(ppm >> 24);
+    
+    bmpinfoheader[29] = (unsigned char)(ppm);
+    bmpinfoheader[30] = (unsigned char)(ppm >> 8);
+    bmpinfoheader[31] = (unsigned char)(ppm >> 16);
+    bmpinfoheader[32] = (unsigned char)(ppm >> 24);
+    
+    f = fopen(file, "wb");
+    
+    fwrite(bmpfileheader, 1, 14, f);
+    fwrite(bmpinfoheader, 1, 40, f);
+    for (int i = 0; i < totalPixels; i++)
+    {
+        
+        unsigned char red = (pixmap[i * 3]);
+        unsigned char green = (pixmap[i * 3 + 1]);
+        unsigned char blue = (pixmap[i * 3 + 2]);
+        
+        unsigned char color[3] = {blue, green, red};
+        
+        fwrite(color, 1, 3, f);
+    }
+    fclose(f);
+    //sleep(1);
+}
+
+
+
 
 int main(int argc, char *argv[])
 {
 
     
-    width = 800;
-    height = 800;
-    int alias = 5;
+    width = 1920;
+    height = 1080;
+    int alias = 2;
     Scene sce;
     //  sce.p_eye = Point3D(0, -50, 0);
     //  sce.v_view = Vector3D(0, 1, 0);
@@ -345,7 +413,7 @@ int main(int argc, char *argv[])
 //    sce.v_up = Vector3D(1, 0, 0);
     
     sce.dist =25;
-    sce.s_x = sce.dist * 4;
+    sce.s_x = sce.dist * 4.0 * width / height;
     sce.s_y = sce.dist * 4;
     sce.SetCamera();
   
@@ -431,7 +499,20 @@ int main(int argc, char *argv[])
 //  Shader shd = Shader(light, Color(20, 23, 30), Color(220, 200, 250), Color(240, 240, 240));
     Shader shd = Shader(light, Color(0x000000), Color(0xdddddd), Color(0x000000));
   
-  setPixels(sce, shd, alias);
+    for (int i = 0; i < 50; i++) {
+        Sphere* tmp = (Sphere*) sphere1;
+        double theta = 2 * PI / 50.0 * i;
+        tmp->pCenter = tmp->pCenter + Vector3D(sin(theta), cos(theta), 0);
+        setPixels(sce, shd, alias, i + 1);
+        string num = to_string(i);
+        num = "00000" + num;
+        num = num.substr((int)num.size() - 5, 5);
+        string file = "video/" + num + ".bmp";
+//        string file = to_string(i);
+        SaveImage(file.c_str(), width, height, 72, pixmap);
+    }
+    
+    
   glutInit(&argc, argv);
   glutInitWindowPosition(100, 100);
   glutInitWindowSize(width, height);
