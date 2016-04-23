@@ -221,7 +221,7 @@ View CalcView(Scene sce, double x_per, double y_per){
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-Color CalcPixel(Scene sce, Shader shd, int x, int y, int alias){
+Color CalcPixel(Scene sce, Shader shd, int x, int y, int alias, int index){
   double red = 0;
   double green = 0;
   double blue = 0;
@@ -230,13 +230,13 @@ Color CalcPixel(Scene sce, Shader shd, int x, int y, int alias){
     int k1 = (double)rand() / RAND_MAX * 100;
     double r = (double)rand() / RAND_MAX;
   for (int q = 0; q < alias; q++){
-      
-      //motion blur
-      //Sphere* sphere = (Sphere*) sce.objs[0];
-      //sphere->pCenter = Point3D(0, -20, 10) + Vector3D(q * 3.0 / alias, 0, 0);
-   
-      
       for (int p = 0; p < alias; p++){
+          //motion blur
+          double theta = 2 * PI / 80.0 * (index + (q + p * 1.0 / alias) / alias);
+          Sphere* sphere = (Sphere*) sce.objs[0];
+          sphere->pCenter = Point3D(0, -20, 15) + Vector3D(sin(theta), cos(theta), 0) * 20;
+          
+          
           double pointX = ((double)rand() / RAND_MAX + p) / alias + x;
           double pointY = ((double)rand() / RAND_MAX + q) / alias + y;
           
@@ -287,14 +287,14 @@ void setPixels(Scene sce, Shader shd, int alias, int index){
     for (int y = 0; y < height; y++){
         for (int x = 0; x < width; x++){
             int i = (y * width + x) * 3;
-            clr = CalcPixel(sce, shd, x, y, alias);
+            clr = CalcPixel(sce, shd, x, y, alias, index);
             pixmap[i++] = clr.r;
             pixmap[i++] = clr.g;
             pixmap[i]   = clr.b;
         }
         
         if(y % (height / 10) == 0){
-            cout << "Pic " << index << ": " << (y * 100 / height) << "%\n" << endl;
+            cout << "Pic " << index + 1 << ": " << (y * 100 / height) << "%\n" << endl;
         }
     }
 }
@@ -402,7 +402,7 @@ int main(int argc, char *argv[])
     
     width = 1920;
     height = 1080;
-    int alias = 2;
+    int alias = 3;
     Scene sce;
     //  sce.p_eye = Point3D(0, -50, 0);
     //  sce.v_view = Vector3D(0, 1, 0);
@@ -436,7 +436,7 @@ int main(int argc, char *argv[])
     
 
   
-    AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(0, -20, 10), 10, Color(73, 179, 248), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 1);
+    AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(0, -20, 15), 10, Color(73, 179, 248), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 1);
     sphere1->fresnel = 1;
     sphere1->IOR = 1.1;
     sphere1->AddTexture("wall0.bmp", 0.5, 0.5);
@@ -498,13 +498,15 @@ int main(int argc, char *argv[])
 
 //  Shader shd = Shader(light, Color(20, 23, 30), Color(220, 200, 250), Color(240, 240, 240));
     Shader shd = Shader(light, Color(0x000000), Color(0xdddddd), Color(0x000000));
-  
-    for (int i = 0; i < 50; i++) {
-        Sphere* tmp = (Sphere*) sphere1;
-        double theta = 2 * PI / 50.0 * i;
-        tmp->pCenter = tmp->pCenter + Vector3D(sin(theta), cos(theta), 0);
-        setPixels(sce, shd, alias, i + 1);
-        string num = to_string(i);
+    
+    Sphere* sph1 = (Sphere*)sphere1;
+    Point3D center = sph1->pCenter;
+    for (int i = 0; i < 80; i++) {
+//        Sphere* tmp = (Sphere*) sphere1;
+//        double theta = 2 * PI / 100.0 * i;
+//        tmp->pCenter = center + Vector3D(sin(theta), cos(theta), 0) * 2;
+        setPixels(sce, shd, alias, i);
+        string num = to_string(i + 1);
         num = "00000" + num;
         num = num.substr((int)num.size() - 5, 5);
         string file = "video/" + num + ".bmp";
