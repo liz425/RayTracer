@@ -232,9 +232,9 @@ Color CalcPixel(Scene sce, Shader shd, int x, int y, int alias, int index){
   for (int q = 0; q < alias; q++){
       for (int p = 0; p < alias; p++){
           //motion blur
-          double theta = 2 * PI / 80.0 * (index + (q + p * 1.0 / alias) / alias);
-          Sphere* sphere = (Sphere*) sce.objs[0];
-          sphere->pCenter = Point3D(0, -20, 15) + Vector3D(sin(theta), cos(theta), 0) * 20;
+//          double theta = 2 * PI / 80.0 * (index + (q + p * 1.0 / alias) / alias);
+//          Sphere* sphere = (Sphere*) sce.objs[0];
+//          sphere->pCenter = Point3D(0, -20, 15) + Vector3D(sin(theta), cos(theta), 0) * 20;
           
           
           double pointX = ((double)rand() / RAND_MAX + p) / alias + x;
@@ -284,8 +284,15 @@ Color CalcPixel(Scene sce, Shader shd, int x, int y, int alias, int index){
 //////////////////////////////////////////////////////////////////////////////////////////////////
 void setPixels(Scene sce, Shader shd, int alias, int index){
     Color clr;
+    //camera painting
+    //Point3D eye_original = sce.p_eye;
+
     for (int y = 0; y < height; y++){
         for (int x = 0; x < width; x++){
+            
+            //sce.p_eye = eye_original + Vector3D(x * 20.0 / width, y * 20.0 / height, (x + y) * 20.0 / width);
+            //sce.SetCamera();
+            
             int i = (y * width + x) * 3;
             clr = CalcPixel(sce, shd, x, y, alias, index);
             pixmap[i++] = clr.r;
@@ -436,8 +443,8 @@ int main(int argc, char *argv[])
     
 
   
-    AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(0, -20, 15), 10, Color(73, 179, 248), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 1);
-    sphere1->fresnel = 1;
+    AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(0, -30, 15), 10, Color(73, 179, 248), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 1);
+    sphere1->fresnel = 0;
     sphere1->IOR = 1.1;
     sphere1->AddTexture("wall0.bmp", 0.5, 0.5);
     sphere1->AddTexture("wall0.bmp", 0.5, 0.5);
@@ -471,14 +478,14 @@ int main(int argc, char *argv[])
     
 
 //    AnyObject* mesh1 = (AnyObject*)new Mesh("tetrahedron.obj", Point3D(0, -20, 20), 8);
-    AnyObject* mesh1 = (AnyObject*)new Mesh("cube.obj", Point3D(-20, -90, 20), 5, 1);
-    mesh1->fresnel = 0;
+    AnyObject* mesh1 = (AnyObject*)new Mesh("cube.obj", Point3D(-60, -60, 10), 5, 1);
+    mesh1->fresnel = 1;
     mesh1->IOR = 1.1;
     mesh1->AddTexture("star0.bmp", 0.1, 0.1);
     mesh1->AddTexture("star1.bmp", 0.1, 0.1);
-    mesh1->AddTexture("normal.bmp");
-    mesh1->texture_type = 1;
-    //objs.push_back(mesh1);
+    //mesh1->AddTexture("normal.bmp");
+    mesh1->texture_type = 0;
+    objs.push_back(mesh1);
     
     AnyObject* mesh2 = (AnyObject*)new Mesh("dodecahandle.obj", Point3D(-20, -30, 20), 3, 1);
     mesh2->AddTexture("star0.bmp", 1, 1);
@@ -501,10 +508,28 @@ int main(int argc, char *argv[])
     
     Sphere* sph1 = (Sphere*)sphere1;
     Point3D center = sph1->pCenter;
+    Vector3D v_view_init = sce.v_view;
     for (int i = 0; i < 80; i++) {
+        //moving object
 //        Sphere* tmp = (Sphere*) sphere1;
 //        double theta = 2 * PI / 100.0 * i;
 //        tmp->pCenter = center + Vector3D(sin(theta), cos(theta), 0) * 2;
+        
+        //change IOR
+        sphere1->IOR = 2 - abs(i - 40) / 40.0;
+        mesh1->IOR = 1;// + i / 30.0;
+        
+        //camera painting
+        
+        
+        //camera rotation
+        double theta = i * PI / 500.0;
+        double x = v_view_init.x;
+        double y = v_view_init.y;
+        double z = v_view_init.z;
+        sce.v_view = Vector3D(cos(theta) * x - sin(theta) * y, sin(theta) * x + cos(theta) * y, z);
+        sce.SetCamera();
+        
         setPixels(sce, shd, alias, i);
         string num = to_string(i + 1);
         num = "00000" + num;
