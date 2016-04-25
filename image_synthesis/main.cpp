@@ -32,6 +32,7 @@ using namespace std;
 
 int width, height;
 unsigned char *pixmap;
+unsigned char *cameraPaint;
 
 
 
@@ -290,7 +291,9 @@ void setPixels(Scene sce, Shader shd, int alias, int index){
     for (int y = 0; y < height; y++){
         for (int x = 0; x < width; x++){
             
-            //sce.p_eye = eye_original + Vector3D(x * 20.0 / width, y * 20.0 / height, (x + y) * 20.0 / width);
+            int size = y * width + x;
+            //camera painting
+            //sce.p_eye = eye_original + Vector3D(cameraPaint[size * 3] * (index + 1) / 80.0 , cameraPaint[size * 3 + 1] * (index + 1) / 80.0, cameraPaint[size * 3 + 2] * (index + 1) / 80.0);
             //sce.SetCamera();
             
             int i = (y * width + x) * 3;
@@ -413,7 +416,7 @@ int main(int argc, char *argv[])
     Scene sce;
     //  sce.p_eye = Point3D(0, -50, 0);
     //  sce.v_view = Vector3D(0, 1, 0);
-    sce.p_eye = Point3D(0, -50, 20);
+    sce.p_eye = Point3D(-5, -50, 20);
     sce.v_view = Vector3D(0, 1, 0);
     sce.v_up = Vector3D(0, 0, 1);
 //    sce.v_view = Vector3D(0, 0, -1);
@@ -509,15 +512,48 @@ int main(int argc, char *argv[])
     Sphere* sph1 = (Sphere*)sphere1;
     Point3D center = sph1->pCenter;
     Vector3D v_view_init = sce.v_view;
-    for (int i = 0; i < 80; i++) {
+    
+    string filename = "camera.bmp";
+    const char* file_name = filename.c_str();
+    FILE* fp = fopen(file_name, "rb");
+    if (fp == NULL) {
+        perror("file_name");
+        throw "Argument Exception";
+    }
+    unsigned char info[54];
+    unsigned char throw_away[84];
+    // read the 54-byte header
+    fread(info, sizeof(unsigned char), 54, fp);
+    fread(throw_away, sizeof(unsigned char), 84, fp);
+    
+    // extract image height and width from header
+    int pwidth = *(int*)&info[18];
+    int pheight = *(int*)&info[22];
+    
+    // allocate 3 bytes per pixel, read the rest of the data at once
+    int size = 3 * pwidth * pheight;
+    cameraPaint = new unsigned char[size];
+    
+    fread(cameraPaint, sizeof(unsigned char), size, fp);
+    fclose(fp);
+    
+    for(int i = 0; i < size; i += 3)
+    {
+        unsigned char tmp = cameraPaint[i];
+        cameraPaint[i] = cameraPaint[i+2];
+        cameraPaint[i+2] = tmp;
+    }
+    
+    
+    for (int i = 0; i < 1 ; i++) {
         //moving object
 //        Sphere* tmp = (Sphere*) sphere1;
 //        double theta = 2 * PI / 100.0 * i;
 //        tmp->pCenter = center + Vector3D(sin(theta), cos(theta), 0) * 2;
         
         //change IOR
-        sphere1->IOR = 2 - abs(i - 40) / 40.0;
-        mesh1->IOR = 1;// + i / 30.0;
+        //sphere1->IOR = 2 - abs(i - 40) / 40.0;
+        //mesh1->IOR = 1;// + i / 30.0;
         
         //camera painting
         
