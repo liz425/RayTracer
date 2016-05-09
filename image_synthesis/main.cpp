@@ -202,7 +202,7 @@ Color CalcSubPixel2(View eye, vector<AnyObject*>& objs, Shader shd, int reflecti
     
     //cout << t_min << endl;
     if(t_min != FLT_MAX){
-        clr = shd.shading2(cm0, shd.ambient_color, ph, nh, objs, geo);
+        clr = shd.shading3(cm0, shd.ambient_color, ph, nh, objs, geo);
     }
     
     return clr;
@@ -525,7 +525,7 @@ int main(int argc, char *argv[])
     
     width = 800;
     height = 600;
-    int alias = 1;
+    int alias = 3;
     Scene sce;
     //  sce.p_eye = Point3D(0, -50, 0);
     //  sce.v_view = Vector3D(0, 1, 0);
@@ -544,7 +544,7 @@ int main(int argc, char *argv[])
     pixmap = new unsigned char[width * height * 3];
     vector<AnyObject*> objs;
   
-    AnyObject* plane1 = (AnyObject*)new Plane(Point3D(0, 100, 0), Vector3D(0, -1, 0), Vector3D(-1, 0, 0), Color(255, 255, 255), 0);
+    AnyObject* plane1 = (AnyObject*)new Plane(Point3D(0, 13, 0), Vector3D(0, -1, 0), Vector3D(-1, 0, 0), Color(200, 200, 200), 0);
     plane1->texture_type = 0;
     objs.push_back(plane1);
   
@@ -553,7 +553,7 @@ int main(int argc, char *argv[])
     //objs.push_back(plane2);
     
     
-    AnyObject* plane3 = (AnyObject*)new Plane(Point3D(0, 0, -10), Vector3D(0, 0, 1), Vector3D(1, 0, 0), Color(255, 255, 255), 0);
+    AnyObject* plane3 = (AnyObject*)new Plane(Point3D(0, 0, -10), Vector3D(0, 0, 1), Vector3D(1, 0, 0), Color(230, 230, 230), 0);
     plane3->texture_type = 0;
     objs.push_back(plane3);
     
@@ -572,11 +572,11 @@ int main(int argc, char *argv[])
     
 
   
-    AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(-11, 0, 0), 10, Color(100,200,100), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 0);
+    AnyObject* sphere1 = (AnyObject*)new Sphere(Point3D(-10.5, 0, 0), 10, Color(100,200,100), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 0);
     sphere1->texture_type = 0;
     objs.push_back(sphere1);
     
-    AnyObject* sphere2 = (AnyObject*)new Sphere(Point3D(11, 0, 0), 10, Color(200, 100, 100), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 0);
+    AnyObject* sphere2 = (AnyObject*)new Sphere(Point3D(10.5, 0, 0), 10, Color(200, 100, 100), Vector3D(1, 0, 0), Vector3D(0, 1, 0), Vector3D(0, 0, 1), 0);
     sphere2->texture_type = 0;
     objs.push_back(sphere2);
   

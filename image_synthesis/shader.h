@@ -178,9 +178,9 @@ public:
                     clr_tmp = get<0>(result);
                 }
             }
-            if(t_min < FLT_MAX){
+            if(t_min < 100){
                 clr_sum = Vector3D(clr_sum.x + clr_tmp.r, clr_sum.y + clr_tmp.g, clr_sum.z + clr_tmp.b);
-                cnt++;
+                cnt += 2;
             }
         }
         
