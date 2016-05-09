@@ -21,7 +21,7 @@ public:
     double fresnel = 1; //Fresnel == 1, full reflection;  Fresnel == 0, full refraction
     double ks = 0; //reflection coefficient, 1 means total reflection
     virtual const tuple<Color, double, Point3D, Vector3D, int> CalcIntersect(View eye, int outside = 0) = 0;
-    virtual const string GetObjectType() = 0;
+    virtual const string GetObjectType() = 0;   
     //at least 2 texture maps: first <-> the normal map; second <-> darker map
     vector<Texture*> textures;
     //type: 0 No texture mapping    type: 1  texture mapping     type: 2 solid texture(image projecting)

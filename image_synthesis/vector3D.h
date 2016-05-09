@@ -128,6 +128,14 @@ public:
     Point3D operator *(const double& v) const{
         return Point3D(x * v, y * v, z * v);
     }
+    
+    //PointB / double
+    Point3D operator /(const double& v) const{
+        if(v == 0){
+            return *this;
+        }
+        return Point3D(x / v, y / v, z / v);
+    }
   
 };
 

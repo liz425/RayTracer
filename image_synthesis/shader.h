@@ -94,7 +94,102 @@ public:
         }
         return clr_sum;
     }
+
+    ///////////////////////////////////////
+    //ambient occlusion
+    Color shading2(Color cm0, Color cm1, Point3D ph, Vector3D nh, vector<AnyObject*> objs, vector<Vector3D> geo){
     
+        int len = (int)geo.size();
+        int cnt = 0;
+        int cnt2 = len;
+        //randomly rotate geodesic
+        double random1 = (double)rand() / RAND_MAX;
+        double random2 = (double)rand() / RAND_MAX;
+        double theta1 = random1 * 2 * PI;
+        double theta2 = random2 * 2 * PI;
+        
+        for(int i = 0; i < len; i++){
+            double x = geo[i].x;
+            double y = geo[i].y;
+            double z = geo[i].z;
+            Vector3D ray(cos(theta1) * x - sin(theta1) * y, sin(theta1) * x + cos(theta1) * y, z);
+            x = ray.x;
+            y = ray.y;
+            z = ray.z;
+            ray = Vector3D(x, cos(theta2) * y - sin(theta2) * z, sin(theta2) * y + cos(theta2) * z);
+            
+            int obj_nmb = (int)objs.size();
+            if(DotProduct(ray, nh) <= 0){
+                cnt2 -= 1;
+                continue;
+            }
+            for(int j = 0; j < obj_nmb; j++){
+                View vw(ph, ray);
+                tuple<Color, double, Point3D, Vector3D, int> result = objs[j]->CalcIntersect(vw, 0);
+                double t = get<1>(result);
+                if(t > 0){
+                    cnt += 2;
+                    break;
+                }
+            }
+        }
+        //cout << cnt2 << endl;
+        Color clr = cm0 * (1 - cnt * 1.0 / len) + cm1 * (cnt * 1.0 / len);
+
+        return clr;
+    }
+
+    //color bleeding
+    Color shading3(Color cm0, Color cm1, Point3D ph, Vector3D nh, vector<AnyObject*> objs, vector<Vector3D> geo){
+        
+        int len = (int)geo.size();
+        int cnt = 0;
+        int cnt2 = len;
+        //randomly rotate geodesic
+        double random1 = (double)rand() / RAND_MAX;
+        double random2 = (double)rand() / RAND_MAX;
+        double theta1 = random1 * 2 * PI;
+        double theta2 = random2 * 2 * PI;
+        Color clr_tmp(0,0,0);
+        Vector3D clr_sum(0,0,0);
+        
+        for(int i = 0; i < len; i++){
+            double x = geo[i].x;
+            double y = geo[i].y;
+            double z = geo[i].z;
+            Vector3D ray(cos(theta1) * x - sin(theta1) * y, sin(theta1) * x + cos(theta1) * y, z);
+            x = ray.x;
+            y = ray.y;
+            z = ray.z;
+            ray = Vector3D(x, cos(theta2) * y - sin(theta2) * z, sin(theta2) * y + cos(theta2) * z);
+            
+            int obj_nmb = (int)objs.size();
+            if(DotProduct(ray, nh) <= 0){
+                cnt2 -= 1;
+                continue;
+            }
+            double t_min = FLT_MAX;
+            for(int j = 0; j < obj_nmb; j++){
+                View vw(ph, ray);
+                tuple<Color, double, Point3D, Vector3D, int> result = objs[j]->CalcIntersect(vw, 0);
+                double t = get<1>(result);
+                if(t > 0 && t < t_min){
+                    t_min = t;
+                    clr_tmp = get<0>(result);
+                }
+            }
+            if(t_min < FLT_MAX){
+                clr_sum = Vector3D(clr_sum.x + clr_tmp.r, clr_sum.y + clr_tmp.g, clr_sum.z + clr_tmp.b);
+                cnt++;
+            }
+        }
+        
+        clr_tmp = Color(clr_sum.x / cnt, clr_sum.y / cnt, clr_sum.z / cnt);
+        Color clr = cm0 * (1 - cnt * 1.0 / len) + clr_tmp * (cnt * 1.0 / len);
+        
+        return clr;
+    }
+
     
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
